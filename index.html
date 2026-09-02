@@ -346,26 +346,37 @@ let idleTimer = null;
 let currentView = 'screensaver'; // 'screensaver' | 'menu' | 'player'
 
 /* ---------------------- Screensaver video ---------------------- */
-// We probe whether screensaver.mp4 exists next to this file. If it does,
-// we play it; if not, we show a friendly fallback instead of a black/broken screen.
+// Tries to load and play the screensaver directly, and only shows the
+// friendly fallback if the <video> element itself reports a real failure
+// (file missing, bad URL, unsupported format). This intentionally does NOT
+// pre-check the file with a fetch() first — a fetch() to a different site
+// (SCREENSAVER_URL hosted on its own separate site, its own address) needs
+// a cross-origin permission a plain video file doesn't send by default,
+// which made that pre-check fail even when the video itself was completely
+// fine. A <video> element loading a file doesn't have that restriction, so
+// checking this way works identically whether the file is on this same
+// site or a different one.
 (function initScreensaver(){
   const src = CONFIG.SCREENSAVER_URL;
-  fetch(src, { method: 'HEAD' }).then(res => {
-    if (res.ok) {
-      screensaverVideo.src = src;
-      screensaverVideo.muted = false;
-      const tryPlay = () => screensaverVideo.play().catch(() => {
-        // Autoplay-with-sound was blocked by the browser. Fall back to
-        // muted autoplay so at least the picture loops; a single tap
-        // anywhere unmutes it (kiosk browsers usually allow this).
-        screensaverVideo.muted = true;
-        screensaverVideo.play().catch(()=>{});
-      });
-      tryPlay();
-    } else {
-      showScreensaverFallback();
-    }
-  }).catch(() => showScreensaverFallback());
+  let settled = false;
+
+  function onFailed(){
+    if (settled) return;
+    settled = true;
+    showScreensaverFallback();
+  }
+
+  screensaverVideo.addEventListener('error', onFailed);
+  screensaverVideo.src = src;
+  screensaverVideo.muted = false;
+  const tryPlay = () => screensaverVideo.play().catch(() => {
+    // Autoplay-with-sound was blocked by the browser. Fall back to
+    // muted autoplay so at least the picture loops; a single tap
+    // anywhere unmutes it (kiosk browsers usually allow this).
+    screensaverVideo.muted = true;
+    screensaverVideo.play().catch(()=>{});
+  });
+  tryPlay();
 })();
 
 function showScreensaverFallback(){
