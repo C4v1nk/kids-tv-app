@@ -123,6 +123,89 @@ function resolveNextUrlFromHtml(html) {
 // for the default export, so this has no effect on how the function runs.)
 export { resolveNextUrlFromHtml, collectCookies };
 
+// A real <video> element loading a file whose picture-locating metadata
+// sits at the END of the file (common for files not specifically
+// re-saved as "fast-start") makes several separate small Range requests
+// hunting for that metadata before it ever asks for the real playback
+// data — confirmed directly watching real traffic: five modest-sized
+// requests for the exact same file id, moments apart, before the one
+// big request that actually carries the video. Without this cache,
+// EVERY one of those would separately re-read Google's warning page
+// from scratch — each costing real seconds for no reason, since they're
+// all asking about the exact same file. This remembers the resolved
+// link (and the cookie that came with it) for a few minutes so a repeat
+// request for the same file skips straight to fetching the actual
+// bytes. If the instance handling a later request happens to be a fresh
+// one with an empty cache, or the remembered link has gone stale,
+// nothing breaks — it just re-resolves from scratch exactly as if this
+// didn't exist (see the fallback below).
+const RESOLVED_CACHE_MS = 4 * 60 * 1000; // 4 minutes
+const resolvedCache = new Map(); // fileId -> { url, cookieHeader, expiresAt }
+
+// Runs the actual hop loop starting from a given URL/cookie pair — used
+// both for a fresh resolution (starting from Google's own entry point)
+// and for a cache hit (starting from an already-resolved link, skipping
+// straight to the last step most of the time).
+async function resolveAndStream(startUrl, startCookieHeader, rangeHeader) {
+  let url = startUrl;
+  let cookieHeader = startCookieHeader;
+
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    const response = await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": USER_AGENT,
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        ...(rangeHeader ? { Range: rangeHeader } : {}),
+      },
+    });
+
+    cookieHeader = collectCookies(response, cookieHeader);
+    const contentType = response.headers.get("content-type") || "";
+
+    // Not an HTML confirmation page — this is the real video. Stream it
+    // straight through as our own response instead of redirecting the TV
+    // to go fetch it separately (see the file header comment for why a
+    // redirect alone doesn't work). Headers are mirrored faithfully from
+    // Google's real response rather than assumed, so a 206 partial-content
+    // reply (from the Range header above) comes through correctly too.
+    if (!contentType.startsWith("text/html")) {
+      const headers = new Headers();
+      ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"].forEach((h) => {
+        const v = response.headers.get(h);
+        if (v) headers.set(h, v);
+      });
+      return {
+        found: true,
+        resolvedUrl: url,
+        cookieHeader,
+        response: new Response(response.body, { status: response.status, headers }),
+      };
+    }
+
+    const html = await response.text();
+    const nextUrl = resolveNextUrlFromHtml(html);
+
+    if (!nextUrl) {
+      return {
+        found: false,
+        response: new Response(
+          "Couldn't find a download link on Google Drive's page for this file. " +
+            'Ask your director to check it\'s still shared as "Anyone with the link."',
+          { status: 502 }
+        ),
+      };
+    }
+
+    url = nextUrl;
+  }
+
+  return {
+    found: false,
+    response: new Response("Google Drive kept redirecting without ever reaching the file.", { status: 504 }),
+  };
+}
+
 export default async (req) => {
   const fileId = new URL(req.url).searchParams.get("id");
 
@@ -137,53 +220,39 @@ export default async (req) => {
   // of the TV always having to restart the file from byte zero.
   const rangeHeader = req.headers.get("range");
 
-  let url = `https://drive.google.com/uc?id=${encodeURIComponent(fileId)}`;
-  let cookieHeader = "";
-
   try {
-    for (let hop = 0; hop < MAX_HOPS; hop++) {
-      const response = await fetch(url, {
-        redirect: "follow",
-        headers: {
-          "User-Agent": USER_AGENT,
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-          ...(rangeHeader ? { Range: rangeHeader } : {}),
-        },
-      });
+    const now = Date.now();
+    const cached = resolvedCache.get(fileId);
 
-      cookieHeader = collectCookies(response, cookieHeader);
-      const contentType = response.headers.get("content-type") || "";
-
-      // Not an HTML confirmation page — this is the real video. Stream it
-      // straight through as our own response instead of redirecting the TV
-      // to go fetch it separately (see the file header comment for why a
-      // redirect alone doesn't work). Headers are mirrored faithfully from
-      // Google's real response rather than assumed, so a 206 partial-content
-      // reply (from the Range header above) comes through correctly too.
-      if (!contentType.startsWith("text/html")) {
-        const headers = new Headers();
-        ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"].forEach((h) => {
-          const v = response.headers.get(h);
-          if (v) headers.set(h, v);
+    if (cached && cached.expiresAt > now) {
+      const attempt = await resolveAndStream(cached.url, cached.cookieHeader, rangeHeader);
+      if (attempt.found) {
+        resolvedCache.set(fileId, {
+          url: attempt.resolvedUrl,
+          cookieHeader: attempt.cookieHeader,
+          expiresAt: now + RESOLVED_CACHE_MS,
         });
-        return new Response(response.body, { status: response.status, headers });
+        return attempt.response;
       }
-
-      const html = await response.text();
-      const nextUrl = resolveNextUrlFromHtml(html);
-
-      if (!nextUrl) {
-        return new Response(
-          "Couldn't find a download link on Google Drive's page for this file. " +
-            'Ask your director to check it\'s still shared as "Anyone with the link."',
-          { status: 502 }
-        );
-      }
-
-      url = nextUrl;
+      // The remembered link didn't pan out this time (most likely Google's
+      // token expired) — drop it and resolve fresh below, exactly as if
+      // there had been no cache entry at all.
+      resolvedCache.delete(fileId);
     }
 
-    return new Response("Google Drive kept redirecting without ever reaching the file.", { status: 504 });
+    const fresh = await resolveAndStream(
+      `https://drive.google.com/uc?id=${encodeURIComponent(fileId)}`,
+      "",
+      rangeHeader
+    );
+    if (fresh.found) {
+      resolvedCache.set(fileId, {
+        url: fresh.resolvedUrl,
+        cookieHeader: fresh.cookieHeader,
+        expiresAt: now + RESOLVED_CACHE_MS,
+      });
+    }
+    return fresh.response;
   } catch (err) {
     return new Response("Drive link resolution failed: " + (err && err.message ? err.message : String(err)), {
       status: 502,
@@ -192,3 +261,4 @@ export default async (req) => {
 };
 
 export const config = { path: "/watch-video" };
+
