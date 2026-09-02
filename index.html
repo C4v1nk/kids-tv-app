@@ -219,6 +219,25 @@
   }
   .player-error .glyph{ font-size:4rem; }
   .player-error p{ color:var(--muted); font-size:1.3rem; max-width:640px; margin:0; }
+
+  /* Shown the instant a video is picked, until real playback actually
+     starts. A video routed through the Drive-resolving helper can
+     legitimately take a while to produce its first frame — without this,
+     the screen just looks like a dead black rectangle the whole time,
+     which reads as broken even when it's genuinely still on its way. */
+  .player-loading{
+    position:absolute; inset:0; background:#000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; text-align:center; padding:40px;
+  }
+  .player-loading .spinner{
+    width:64px; height:64px; border-radius:50%;
+    border: 6px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent);
+    animation: ktv-spin 0.9s linear infinite;
+  }
+  .player-loading p{ color:var(--muted); font-size:1.2rem; margin:0; }
+  @keyframes ktv-spin{ to{ transform: rotate(360deg); } }
   #backBar{
     position:absolute; top:26px; left:26px; z-index:21;
     display:flex; gap:14px;
@@ -841,6 +860,10 @@ function playVideo(b){
   menuEl.classList.remove('open');
   playerFrameWrap.innerHTML =
     '<video id="playerVideo" autoplay playsinline></video>' +
+    '<div id="playerLoading" class="player-loading">' +
+      '<div class="spinner"></div>' +
+      '<p>Loading video…</p>' +
+    '</div>' +
     '<div id="playerError" class="player-error" hidden>' +
       '<div class="glyph">⚠️</div>' +
       '<p>This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
@@ -850,25 +873,48 @@ function playVideo(b){
   let urlIndex = 0;
   const myToken = ++playAttemptToken;
 
+  // Rather than judging "is this taking too long?" against a single fixed
+  // clock from the moment we pressed play, this timer restarts every time
+  // the browser reports real download progress (the `progress` event,
+  // below) — so a video that's genuinely still on its way, just slowly
+  // (real, observed behavior for a file whose picture-locating metadata
+  // sits at the end rather than the front, fetched through a helper that
+  // itself needs a moment to find Google's real link first) is never cut
+  // off while data keeps arriving. Only real silence — nothing at all
+  // arriving for this long — counts as stalled.
+  const STALL_LIMIT_MS = 15000;
+
+  function armStallTimer(){
+    clearTimeout(playerLoadTimeout);
+    playerLoadTimeout = setTimeout(() => {
+      if (myToken !== playAttemptToken) return;
+      if (videoEl.readyState < 2) tryNextUrl();
+    }, STALL_LIMIT_MS);
+  }
+
+  function hideLoadingIndicator(){
+    const loading = document.getElementById('playerLoading');
+    if (loading) loading.hidden = true;
+  }
+
   function tryNextUrl(){
     if (myToken !== playAttemptToken) return; // superseded — ignore
-    clearTimeout(playerLoadTimeout);
     if (urlIndex >= urls.length) { showPlayerError(); return; }
     const thisUrl = urls[urlIndex];
     urlIndex++;
     videoEl.src = thisUrl;
     videoEl.load(); // force a clean reset of the element's load state before we try again
     videoEl.play().catch(() => {});
-    // Backstop: a failed attempt (e.g. Drive's warning page instead of the
-    // real file) may not always fire a clean "error" event on the <video>
-    // element. If nothing has actually started playing within a few
-    // seconds, treat this attempt as failed and move to the next one.
-    playerLoadTimeout = setTimeout(() => {
-      if (myToken !== playAttemptToken) return;
-      if (videoEl.readyState < 2) tryNextUrl();
-    }, 6000);
+    armStallTimer();
   }
 
+  videoEl.addEventListener('progress', () => {
+    // More bytes just arrived — genuinely still loading, not stalled.
+    // Push the deadline back out instead of letting a slow-but-working
+    // load get cut off partway through.
+    if (myToken !== playAttemptToken) return;
+    if (videoEl.readyState < 2) armStallTimer();
+  });
   videoEl.addEventListener('error', () => {
     if (myToken !== playAttemptToken) return;
     tryNextUrl();
@@ -876,6 +922,7 @@ function playVideo(b){
   videoEl.addEventListener('playing', () => {
     if (myToken !== playAttemptToken) return;
     clearTimeout(playerLoadTimeout);
+    hideLoadingIndicator();
   });
   // Safety net: some browsers accept a .play() call made before any data has
   // loaded yet without actually resuming playback once the data does arrive.
@@ -884,6 +931,7 @@ function playVideo(b){
   videoEl.addEventListener('canplay', () => {
     if (myToken !== playAttemptToken) return;
     clearTimeout(playerLoadTimeout);
+    hideLoadingIndicator();
     videoEl.play().catch(() => {});
   });
   tryNextUrl();
@@ -897,8 +945,16 @@ function playVideo(b){
 function showPlayerError(){
   clearTimeout(playerLoadTimeout);
   const vid = document.getElementById('playerVideo');
+  const loading = document.getElementById('playerLoading');
   const err = document.getElementById('playerError');
-  if (vid) vid.style.display = 'none';
+  // Actually stop playback here, not just hide it visually — otherwise a
+  // video that keeps loading/playing in the background after this screen
+  // shows (which is exactly what real testing turned up: audio audible
+  // with the error message on screen) leaves teachers hearing sound from
+  // a "broken" screen, which is more confusing than either working or
+  // failing cleanly.
+  if (vid) { vid.pause(); vid.style.display = 'none'; }
+  if (loading) loading.hidden = true;
   if (err) err.hidden = false;
 }
 
