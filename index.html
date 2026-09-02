@@ -107,7 +107,15 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 6px 6px 30px;
+    /* Top/left/right padding needs to be bigger than it looks like it
+       "should" be. Setting overflow-y here quietly forces the browser to
+       clip overflow-x too (a real CSS rule: once one axis isn't `visible`,
+       the other can't stay `visible` either) — and a focused button's glow
+       (--focus-ring, ~6px) plus its scale(1.045) zoom (~5px) bleed past the
+       button's own edge. With only 6px of padding, the very first row/column
+       had its focus glow sliced off flat against that clipping edge. 18px
+       comfortably clears both effects so the glow is never cut off again.  */
+    padding: 18px 18px 30px;
   }
 
   .btn{
@@ -488,6 +496,7 @@ async function loadConfigFromSheet(){
     // back to the main menu next render.
     if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
     try { localStorage.setItem('ktv_last_good_config', JSON.stringify(buttons)); } catch(e) {}
+    loadThumbnailsUpFront(buttons);
     renderButtons();
     updateMenuTitle();
     updateBackButtonLabel();
@@ -501,6 +510,7 @@ async function loadConfigFromSheet(){
         if (cached && cached.length) {
           buttons = cached;
           if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
+          loadThumbnailsUpFront(buttons);
           renderButtons();
           updateMenuTitle();
           updateBackButtonLabel();
@@ -635,19 +645,79 @@ function escapeHtml(s){
 
 /* ---------------------- Video thumbnails ---------------------- */
 // Uses Google's public thumbnail image for each Drive file so a button
-// shows the video's actual picture instead of a generic icon. This is
-// loaded quietly in the background: if a particular file's thumbnail
-// doesn't come through (not shared quite right, an unusual file type,
-// Google not generating one for it, etc.) the button just keeps its
-// plain icon+color look from a moment ago — nothing ever shows broken.
-function attachThumbnail(btn, fileId){
-  const url = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
-  const probe = new Image();
-  probe.onload = () => {
-    btn.style.setProperty('--btn-thumb', 'url("' + url + '")');
-    btn.classList.add('has-thumb');
+// shows the video's actual picture instead of a generic icon. If a
+// particular file's thumbnail doesn't come through (not shared quite
+// right, an unusual file type, Google not generating one for it, etc.)
+// the button just keeps its plain icon+color look — nothing ever shows
+// broken.
+//
+// Thumbnails are preloaded for every video as soon as the sheet loads
+// (see loadThumbnailsUpFront below), not only when a button for them
+// happens to get created. Before this, opening a folder built its buttons
+// fresh with a plain icon first and only added the picture once a brand
+// new Image() finished loading a moment later — so every single time a
+// teacher opened a folder (even one they'd already opened before), every
+// tile visibly flashed icon-then-photo. Now a shared cache remembers each
+// file's thumbnail result across the whole session: once it's loaded once,
+// any button for that same file — this visit or a later one — gets the
+// picture immediately, with nothing to flash.
+const thumbStatus = new Map();      // fileId -> 'loading' | 'loaded' | 'failed'
+const thumbWaiters = new Map();     // fileId -> [callback, ...] still waiting on a first-time load
+
+function thumbnailUrl(fileId){
+  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
+}
+
+function preloadThumbnail(fileId){
+  if (thumbStatus.has(fileId)) return; // already loaded, failed, or already loading — nothing to do
+  thumbStatus.set(fileId, 'loading');
+  const img = new Image();
+  img.onload = () => {
+    thumbStatus.set(fileId, 'loaded');
+    const waiters = thumbWaiters.get(fileId) || [];
+    thumbWaiters.delete(fileId);
+    waiters.forEach(cb => cb('loaded'));
   };
-  probe.src = url;
+  img.onerror = () => {
+    thumbStatus.set(fileId, 'failed');
+    const waiters = thumbWaiters.get(fileId) || [];
+    thumbWaiters.delete(fileId);
+    waiters.forEach(cb => cb('failed'));
+  };
+  img.src = thumbnailUrl(fileId);
+}
+
+// Kicks off loading every known video's thumbnail in the background the
+// moment the sheet is parsed — long before a teacher navigates into any
+// particular folder — so by the time they do, most (usually all) of that
+// folder's thumbnails are already sitting ready in the cache above.
+function loadThumbnailsUpFront(list){
+  list.forEach(b => preloadThumbnail(b.fileId));
+}
+
+function attachThumbnail(btn, fileId){
+  const status = thumbStatus.get(fileId);
+  if (status === 'loaded') {
+    btn.style.setProperty('--btn-thumb', 'url("' + thumbnailUrl(fileId) + '")');
+    btn.classList.add('has-thumb');
+    return;
+  }
+  if (status === 'failed') return; // stays icon, matches the old silent-failure behavior
+  // Not resolved yet (first time this file's ever been seen, or still
+  // mid-flight) — wait for it and apply the moment it resolves. Guarded by
+  // `btn.isConnected` because renderButtons() rebuilds every button on each
+  // navigation; without that check, a slow thumbnail resolving after the
+  // teacher has already moved to a different screen could reach into a
+  // button element that isn't even on screen anymore.
+  if (!thumbWaiters.has(fileId)) thumbWaiters.set(fileId, []);
+  thumbWaiters.get(fileId).push((result) => {
+    if (!btn.isConnected) return;
+    if (result === 'loaded') {
+      btn.style.setProperty('--btn-thumb', 'url("' + thumbnailUrl(fileId) + '")');
+      btn.classList.add('has-thumb');
+    }
+  });
+  preloadThumbnail(fileId); // safety net — normally already kicked off by loadThumbnailsUpFront
 }
 
 /* ---------------------- Screensaver audio fade ---------------------- */
@@ -719,39 +789,38 @@ function showMenu(){
 // — no extra tap needed), and our own on-screen back button works the same
 // way it does everywhere else in the app.
 //
-// Trade-off: this direct-link approach isn't an officially supported way to
-// stream a Drive file. For larger files especially, Google shows a "can't
-// scan this file for viruses" warning page instead of the actual video — a
-// real, well-documented Drive quirk for big files (bible-story-length videos
-// are exactly the size this tends to affect), not something a page setting
-// can turn off, and it turned out to affect EVERY lesson video on real
-// hardware, not just occasional large ones — so guessing at a fixed "skip
-// the warning" URL pattern isn't reliable enough on its own.
+// Getting the actual video bytes reliably took two real fixes, in order:
 //
-// The actually-reliable fix (confirmed against the real, current behavior
-// of Google's warning page, and modeled on gdown — a well-known, actively
-// maintained tool built specifically to download Drive files this way):
-// resolving that warning page requires reading its HTML to find the real
-// "download anyway" link buried in it, which a browser's own JavaScript is
-// blocked from doing across origins (confirmed directly — a plain fetch()
-// to Google's Drive endpoints from our own page is rejected before it even
-// gets a response). So that resolving step happens instead in a tiny free
-// helper program that runs on Netlify's own servers (see
-// netlify/functions/resolve-video.js) — servers aren't bound by that same
-// browser rule. The TV just asks our own helper "where's the real video?"
-// and gets redirected straight to it.
+// Fix 1 — finding Google's real download link at all. Google shows a "can't
+// scan this file for viruses" warning page instead of the actual video for
+// most lesson-video-sized files, and the real "download anyway" link on that
+// page is different every time — reading it requires a request our own
+// page's JavaScript is blocked from making across origins (confirmed
+// directly: a plain fetch() to Google's Drive endpoints from here is
+// rejected before it even gets a response). So a small helper program has to
+// do that reading instead, from a server, modeled on gdown (a well-known,
+// actively maintained tool built specifically to download Drive files this
+// way).
 //
-// That helper needs one extra one-time setup step beyond plain drag-and-drop
-// (see the setup guide) — until that's done, or if it ever fails for some
-// other reason, the old direct-guess links are still tried afterward as a
-// backup, so nothing regresses in the meantime.
+// Fix 2 — actually playing what that helper finds. The first version of
+// that helper found the real link correctly, then just redirected the TV
+// straight to Google to fetch it directly — which turned out to still fail
+// for every real video, confirmed directly in Chrome's own Network panel:
+// every attempt showed "(failed) net::ERR_BLOCKED_BY_ORB." ORB (Opaque
+// Response Blocking) is a real browser security feature that blocks a
+// <video> tag from playing a file handed back from a different website
+// unless that website explicitly allows it — which Google Drive's own
+// servers don't. So the helper (netlify/edge-functions/stream-video.js) now
+// does one more thing: instead of redirecting the TV to Google, it fetches
+// the video itself and streams those bytes back as its own reply — which
+// makes the request look, to the browser, exactly like any other file
+// already sitting on this same site, with nothing "foreign" left for ORB to
+// block. Verified end-to-end, including that a real decoded video frame
+// actually loads this way with no blocked request anywhere in the chain.
 function directDriveUrls(fileId){
   const id = encodeURIComponent(fileId);
   return [
-    '/.netlify/functions/resolve-video?id=' + id,
-    'https://drive.usercontent.google.com/download?id=' + id + '&export=download&confirm=t',
-    'https://drive.google.com/uc?export=download&confirm=t&id=' + id,
-    'https://drive.google.com/uc?export=download&id=' + id
+    '/watch-video?id=' + id
   ];
 }
 
