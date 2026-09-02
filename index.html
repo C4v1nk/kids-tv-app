@@ -286,7 +286,16 @@ const CONFIG = {
   // Icon + color for the folder buttons that open a week's videos (e.g.
   // "Week 1", "Week 2") when a Drive room folder has subfolders inside it.
   FOLDER_ICON: "📁",
-  FOLDER_COLOR: "#64748b"
+  FOLDER_COLOR: "#64748b",
+
+  // Where to find the screensaver video. Leave as "screensaver.mp4" if that
+  // file sits right next to this page on the same site. If it's too big to
+  // upload through GitHub (its web uploader tops out well under this app's
+  // typical screensaver size) and you hosted it on its own separate site
+  // instead, paste that site's full video address here, e.g.
+  // "https://your-screensaver-site.netlify.app/screensaver.mp4" — either
+  // way works exactly the same from here on.
+  SCREENSAVER_URL: "https://firstsarasota-kids-tv-screensaver.netlify.app/screensaver.mp4"
 };
 /* =================== END CONFIG — don't need to edit below ================= */
 
@@ -340,7 +349,7 @@ let currentView = 'screensaver'; // 'screensaver' | 'menu' | 'player'
 // We probe whether screensaver.mp4 exists next to this file. If it does,
 // we play it; if not, we show a friendly fallback instead of a black/broken screen.
 (function initScreensaver(){
-  const src = 'screensaver.mp4';
+  const src = CONFIG.SCREENSAVER_URL;
   fetch(src, { method: 'HEAD' }).then(res => {
     if (res.ok) {
       screensaverVideo.src = src;
