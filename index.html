@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Kids Ministry TV</title>
+
+<!--
+  =====================================================================
+  KIDS MINISTRY TV DASHBOARD
+  =====================================================================
+  Everything you might want to change lives in the CONFIG block below,
+  in the <script> near the bottom of this file. You should not need to
+  touch anything else. Search for "EDIT ME" to jump to the settings.
+  =====================================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0b1120;
+    --bg-panel: #141d33;
+    --bg-panel-2: #1b2740;
+    --accent: #f6ad37;
+    --accent-ink: #3a2405;
+    --text: #f8fafc;
+    --muted: #93a1bd;
+    --border: #2a3757;
+    --danger: #ef4b5f;
+    --focus-ring: 0 0 0 6px rgba(246,173,55,0.35), 0 0 0 3px var(--accent);
+    --radius: 28px;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .display-font{ font-family: 'Fredoka', 'Inter', sans-serif; }
+
+  /* ---------- SCREENSAVER LAYER ---------- */
+  #screensaver{
+    position: fixed; inset: 0;
+    background: #000;
+    display:flex; align-items:center; justify-content:center;
+    z-index: 5;
+  }
+  #screensaver video{
+    width:100%; height:100%; object-fit: cover;
+  }
+  #screensaverFallback{
+    display:none;
+    flex-direction:column; align-items:center; gap:18px;
+    text-align:center; padding:40px;
+  }
+  #screensaverFallback .glyph{ font-size: 5rem; }
+  #screensaverFallback h1{ font-size: clamp(2rem, 5vw, 3.5rem); margin:0; letter-spacing:1px; }
+  #screensaverFallback p{ color:var(--muted); font-size:1.2rem; max-width:640px; margin:0; }
+
+  /* ---------- MENU LAYER ---------- */
+  #menu{
+    position: fixed; inset:0;
+    background: radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
+    z-index: 10;
+    display:none;
+    flex-direction:column;
+    padding: 48px 56px 40px;
+  }
+  #menu.open{ display:flex; }
+
+  .menu-header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 34px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .menu-header h1{
+    margin:0; font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+    letter-spacing: 0.5px;
+  }
+  .menu-header .status{ line-height:1; }
+  .menu-header .status .dot{
+    display:inline-block; width:12px; height:12px; border-radius:50%;
+    background: #4ade80;
+  }
+  .menu-header .status.stale .dot{ background: var(--danger); }
+
+  #buttonGrid{
+    display:grid;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    /* Each row reserves at least a full button's height (matching .btn's
+       min-height below) and grows for taller content — never shrinks
+       smaller than a button, which is what was letting rows visually
+       overlap when the window was shorter than a TV screen (e.g. testing
+       in a normal desktop browser instead of full-screen on the TV). */
+    grid-auto-rows: minmax(200px, auto);
+    align-content: start;
+    gap: 28px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 6px 30px;
+  }
+
+  .btn{
+    --btn-color: var(--accent);
+    position:relative;
+    background: linear-gradient(160deg, var(--bg-panel), var(--bg-panel-2));
+    border: 3px solid var(--border);
+    border-radius: var(--radius);
+    padding: 34px 26px;
+    min-height: 190px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 14px;
+    color: var(--text);
+    cursor: pointer;
+    text-align:center;
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+    box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+  }
+  .btn .icon{ font-size: clamp(3.4rem, 6vw, 5.2rem); line-height:1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
+  .btn .label{ font-family:'Fredoka', sans-serif; font-weight:600; font-size: clamp(1.5rem, 2.4vw, 2rem); line-height:1.15; }
+  .btn:hover{ border-color: var(--btn-color); }
+  .btn.focused{
+    border-color: var(--btn-color);
+    background: linear-gradient(160deg, var(--bg-panel-2), var(--bg-panel));
+    transform: scale(1.045);
+    box-shadow: var(--focus-ring), 0 18px 34px rgba(0,0,0,0.45);
+  }
+  .btn:active{ transform: scale(0.98); }
+  /* Folder buttons ("Week 1", "Week 2") open a sub-list instead of playing a
+     video right away — a dashed border is the one visual hint that this
+     button leads somewhere else rather than starting a video immediately. */
+  .btn-folder{ border-style: dashed; }
+
+  /* Video buttons: while a thumbnail is loading (or if it fails to load —
+     e.g. the file isn't shared/viewable) the button quietly stays in its
+     plain icon+label look, so nothing ever looks broken. Once a thumbnail
+     loads successfully, .has-thumb switches it to a full-tile picture with
+     just the title, drop-shadowed so it reads over any image underneath. */
+  .btn-video.has-thumb{
+    background-image: var(--btn-thumb);
+    background-size: cover;
+    background-position: center;
+    justify-content: flex-end;
+    padding: 20px 18px 18px;
+  }
+  .btn-video.has-thumb .icon{ display:none; }
+  .btn-video.has-thumb .label{
+    text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 3px 10px rgba(0,0,0,.55);
+  }
+
+  #emptyState{
+    grid-column: 1/-1;
+    color: var(--muted);
+    text-align:center;
+    padding: 60px 20px;
+    font-size: 1.2rem;
+    line-height:1.6;
+  }
+
+  .pill-btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Fredoka', sans-serif; font-weight:600; font-size:1.05rem;
+    padding: 16px 26px; border-radius:999px;
+    background: var(--bg-panel-2); color: var(--text);
+    border: 2px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+    transition: transform .12s ease, border-color .12s ease;
+  }
+  .pill-btn.focused, .pill-btn:hover{ border-color: var(--accent); transform: scale(1.04); }
+  .pill-btn.primary{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  /* A quiet corner exit, not a website "button" — small, low-contrast until
+     focused/hovered, icon only. A safety net for exiting a video, kept
+     deliberately understated so it doesn't read as on-screen instruction. */
+  .exit-btn{
+    appearance:none; cursor:pointer;
+    width:52px; height:52px; border-radius:50%;
+    background: rgba(15,20,35,0.45);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.55);
+    font-size: 1.3rem;
+    display:flex; align-items:center; justify-content:center;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, transform .15s ease;
+  }
+  .exit-btn:hover, .exit-btn:focus, .exit-btn.focused{
+    background: rgba(15,20,35,0.85); color:#fff; border-color: var(--accent); transform: scale(1.06);
+  }
+
+  /* ---------- PLAYER LAYER ---------- */
+  #player{
+    position:fixed; inset:0; background:#000; z-index:20;
+    display:none;
+  }
+  #player.open{ display:block; }
+  #playerFrameWrap{ position:absolute; inset:0; width:100%; height:100%; }
+  #player iframe, #player video{ display:block; width:100%; height:100%; border:none; }
+  .player-error{
+    position:absolute; inset:0; background:#000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; text-align:center; padding:40px;
+  }
+  .player-error .glyph{ font-size:4rem; }
+  .player-error p{ color:var(--muted); font-size:1.3rem; max-width:640px; margin:0; }
+  #backBar{
+    position:absolute; top:26px; left:26px; z-index:21;
+    display:flex; gap:14px;
+  }
+
+  /* focus outline reset — we draw our own */
+  button{ font: inherit; }
+  button:focus{ outline:none; }
+  ::-webkit-scrollbar{ width:10px; }
+  ::-webkit-scrollbar-thumb{ background: var(--border); border-radius:10px; }
+</style>
+</head>
+<body>
+
+  <!-- SCREENSAVER (default resting state) -->
+  <div id="screensaver">
+    <video id="screensaverVideo" autoplay loop playsinline></video>
+    <div id="screensaverFallback">
+      <div class="glyph">✝️</div>
+      <h1 class="display-font" id="fallbackTitle">Kids Ministry</h1>
+      <p>Add a file named <code>screensaver.mp4</code> next to this page to play your logo loop here.</p>
+    </div>
+  </div>
+
+  <!-- MENU (button grid) -->
+  <div id="menu">
+    <div class="menu-header">
+      <h1 class="display-font" id="menuTitle">Select a Video</h1>
+      <div class="status" id="statusLine" title="Loading…"><span class="dot"></span></div>
+    </div>
+    <div id="buttonGrid"><div id="emptyState">Loading the lesson list…</div></div>
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="exit-btn" id="menuCloseBtn" aria-label="Back to screensaver" title="Back to screensaver">↩</button>
+    </div>
+  </div>
+
+  <!-- PLAYER (fullscreen video) -->
+  <div id="player">
+    <div id="backBar">
+      <button class="exit-btn" id="playerBackBtn" aria-label="Back to menu" title="Back to menu">◀</button>
+    </div>
+    <div id="playerFrameWrap"></div>
+  </div>
+
+<script>
+/* =====================================================================
+   CONFIG — EDIT ME
+   This is the only section you should need to change.
+   ===================================================================== */
+const CONFIG = {
+  // The published CSV link from your Google Sheet (File > Share > Publish to web).
+  // See the setup guide for exactly how to get this.
+  SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJ6toT0PQzJDJKOStGySWb51A3-No6YYsAsqMECnACmxkQRH5yaD-Ak28PqF7Nrhdrm-SnlanGliWT/pub?output=csv",
+
+  // Text shown at the top of the button screen and on the fallback screensaver.
+  MENU_TITLE: "Select a Video",
+  CHURCH_NAME: "Kids Ministry",
+
+  // How many buttons per row on the TV.
+  GRID_COLUMNS: 3,
+
+  // How often (in minutes) the TV checks the Google Sheet for changes.
+  // 5 is a good default — Mom's edits show up within 5 minutes on every TV.
+  REFRESH_MINUTES: 5,
+
+  // If a teacher opens a video and walks away, automatically return to the
+  // screensaver after this many minutes of no interaction. Set to 0 to disable.
+  IDLE_RETURN_MINUTES: 45,
+
+  // Default color for buttons that don't specify their own color in the sheet.
+  DEFAULT_BUTTON_COLOR: "#f6ad37",
+
+  // Icon + color for the folder buttons that open a week's videos (e.g.
+  // "Week 1", "Week 2") when a Drive room folder has subfolders inside it.
+  FOLDER_ICON: "📁",
+  FOLDER_COLOR: "#64748b"
+};
+/* =================== END CONFIG — don't need to edit below ================= */
+
+/* ---------------------- Room filtering ----------------------
+   This one page serves every TV. Which room's buttons it shows depends on
+   a "?room=" bit added to the end of the web address you put into each
+   Fire Stick's Fully Kiosk Browser settings, e.g.:
+     https://your-site.netlify.app/?room=elementary
+     https://your-site.netlify.app/?room=preschool
+   A video with its Room column left blank, or set to "Both", shows on
+   every TV regardless of the ?room= it was given. Opening the page with
+   no ?room= at all (like when you're just testing on your Mac) shows
+   everything, from every room, so you can check all the buttons at once. */
+function getRoomParam(){
+  // Reads "room" from the URL regardless of capitalization in either the key
+  // or the value (?room=, ?Room=, ?ROOM=Elementary all work) — 10 Fire Sticks
+  // get set up by hand, so a stray capital letter shouldn't break anything.
+  const params = new URLSearchParams(location.search);
+  for (const [key, value] of params) {
+    if (key.toLowerCase() === 'room') return value.trim().toLowerCase();
+  }
+  return '';
+}
+const ROOM = getRoomParam();
+
+const screensaverEl = document.getElementById('screensaver');
+const screensaverVideo = document.getElementById('screensaverVideo');
+const screensaverFallback = document.getElementById('screensaverFallback');
+const menuEl = document.getElementById('menu');
+const buttonGrid = document.getElementById('buttonGrid');
+const statusLine = document.getElementById('statusLine');
+const playerEl = document.getElementById('player');
+const playerFrameWrap = document.getElementById('playerFrameWrap');
+const menuCloseBtn = document.getElementById('menuCloseBtn');
+const playerBackBtn = document.getElementById('playerBackBtn');
+
+const roomLabel = ROOM ? (ROOM.charAt(0).toUpperCase() + ROOM.slice(1)) : '';
+document.getElementById('menuTitle').textContent = roomLabel ? (roomLabel + ' — ' + CONFIG.MENU_TITLE) : CONFIG.MENU_TITLE;
+document.getElementById('fallbackTitle').textContent = CONFIG.CHURCH_NAME;
+buttonGrid.style.setProperty('--cols', CONFIG.GRID_COLUMNS);
+document.title = CONFIG.CHURCH_NAME + (roomLabel ? ' — ' + roomLabel : '') + ' TV';
+
+let buttons = [];          // parsed sheet rows for the current room (videos only, each may carry a .group)
+let visibleItems = [];     // what's actually on screen right now: a mix of folder buttons and video buttons
+let activeGroup = null;    // null = showing the root menu; a string = inside that week/folder's sub-list
+let focusedIndex = 0;      // roving focus index within buttonGrid
+let idleTimer = null;
+let currentView = 'screensaver'; // 'screensaver' | 'menu' | 'player'
+
+/* ---------------------- Screensaver video ---------------------- */
+// We probe whether screensaver.mp4 exists next to this file. If it does,
+// we play it; if not, we show a friendly fallback instead of a black/broken screen.
+(function initScreensaver(){
+  const src = 'screensaver.mp4';
+  fetch(src, { method: 'HEAD' }).then(res => {
+    if (res.ok) {
+      screensaverVideo.src = src;
+      screensaverVideo.muted = false;
+      const tryPlay = () => screensaverVideo.play().catch(() => {
+        // Autoplay-with-sound was blocked by the browser. Fall back to
+        // muted autoplay so at least the picture loops; a single tap
+        // anywhere unmutes it (kiosk browsers usually allow this).
+        screensaverVideo.muted = true;
+        screensaverVideo.play().catch(()=>{});
+      });
+      tryPlay();
+    } else {
+      showScreensaverFallback();
+    }
+  }).catch(() => showScreensaverFallback());
+})();
+
+function showScreensaverFallback(){
+  screensaverVideo.style.display = 'none';
+  screensaverFallback.style.display = 'flex';
+}
+
+// Some browsers — and especially some kiosk-browser apps' built-in web
+// views — won't actually start ANY video playback, even muted, until a
+// real button press has happened somewhere on the page; the automatic
+// play() attempt at page load can fail silently with nothing to react to,
+// leaving the screensaver stuck on a blank black frame until something
+// else happens to call play() again (which is why going into the menu and
+// back out "fixed" it — that later play() call finally had a real press
+// behind it). The very first press/tap anywhere kicks the video into
+// gear for real, and unmutes it too, with no on-screen instruction needed
+// — it just starts working normally from then on.
+function primeScreensaverOnFirstPress(){
+  // Always (re)try play() — harmless if it's already playing, and this is
+  // what actually gets a stuck/never-started video going for the first time.
+  screensaverVideo.play().catch(() => {});
+  if (screensaverVideo.muted) {
+    // Unmute at silence, not full volume — the same key press is about to
+    // open the menu (which ducks audio anyway), so this avoids a jarring
+    // half-second blast of full-volume sound right as the screen changes.
+    screensaverVideo.volume = 0;
+    screensaverVideo.muted = false;
+    screensaverVideo.play().catch(() => {});
+  }
+  document.removeEventListener('keydown', primeScreensaverOnFirstPress, true);
+  document.removeEventListener('click', primeScreensaverOnFirstPress, true);
+}
+document.addEventListener('keydown', primeScreensaverOnFirstPress, true);
+document.addEventListener('click', primeScreensaverOnFirstPress, true);
+
+/* ---------------------- CSV loading ---------------------- */
+function parseCSV(text){
+  // Minimal RFC4180-ish CSV parser: handles quoted fields with commas
+  // and escaped quotes, which a plain text.split(',') cannot.
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i+1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(cell => cell.trim() !== ''));
+}
+
+function extractDriveId(raw){
+  if (!raw) return null;
+  raw = raw.trim();
+  // Already a bare file ID (no slashes or spaces)
+  if (/^[a-zA-Z0-9_-]{15,}$/.test(raw)) return raw;
+  // Full share link: .../d/FILEID/...
+  let m = raw.match(/\/d\/([a-zA-Z0-9_-]{15,})/);
+  if (m) return m[1];
+  // ?id=FILEID style link
+  m = raw.match(/[?&]id=([a-zA-Z0-9_-]{15,})/);
+  if (m) return m[1];
+  return null;
+}
+
+async function loadConfigFromSheet(){
+  try {
+    const res = await fetch(CONFIG.SHEET_CSV_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if (!rows.length) throw new Error('Sheet came back empty');
+
+    // Skip header row (first row). Columns: Label, Drive Link or File ID,
+    // Color (optional), Icon (optional), Room (optional), Group (optional —
+    // which week/subfolder a video came from; blank = shows on the main menu).
+    const parsedAll = rows.slice(1).map(r => ({
+      label: (r[0] || '').trim(),
+      fileId: extractDriveId(r[1] || ''),
+      color: (r[2] || '').trim() || CONFIG.DEFAULT_BUTTON_COLOR,
+      icon: (r[3] || '').trim() || '▶️',
+      room: (r[4] || '').trim().toLowerCase(),
+      group: (r[5] || '').trim()
+    })).filter(b => b.label && b.fileId);
+
+    if (!parsedAll.length) throw new Error('No valid rows found (check Label + Drive link columns)');
+
+    const parsed = parsedAll.filter(b => !ROOM || !b.room || b.room === 'both' || b.room === ROOM);
+
+    if (!parsed.length) {
+      // Distinguish "the sheet is broken" from "this room just has nothing
+      // assigned yet" — very different fixes, so worth telling apart.
+      throw new Error(ROOM
+        ? 'The sheet has videos, but none tagged for room "' + ROOM + '" (or "Both") yet'
+        : 'No valid rows found (check Label + Drive link columns)');
+    }
+
+    buttons = parsed;
+    // If the folder/week the teacher currently has open got renamed or
+    // removed in this sync, don't strand them on a dead sub-list — fall
+    // back to the main menu next render.
+    if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
+    try { localStorage.setItem('ktv_last_good_config', JSON.stringify(buttons)); } catch(e) {}
+    renderButtons();
+    updateMenuTitle();
+    updateBackButtonLabel();
+    setStatus(true);
+  } catch (err) {
+    console.warn('Sheet load failed, using last known good config:', err);
+    setStatus(false);
+    if (!buttons.length) {
+      try {
+        const cached = JSON.parse(localStorage.getItem('ktv_last_good_config') || 'null');
+        if (cached && cached.length) {
+          buttons = cached;
+          if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
+          renderButtons();
+          updateMenuTitle();
+          updateBackButtonLabel();
+        }
+      } catch(e) {}
+    }
+    if (!buttons.length) renderEmptyState(err.message);
+  }
+}
+
+function setStatus(isLive){
+  statusLine.className = 'status' + (isLive ? '' : ' stale');
+  statusLine.title = isLive ? 'Up to date' : 'Showing last saved list (couldn’t reach the sheet)';
+}
+
+function renderEmptyState(reason){
+  // Shown on the TV itself with no mouse around to hover a tooltip, so the
+  // real reason (not just "something's wrong") goes right on the screen.
+  buttonGrid.innerHTML = '<div id="emptyState">No videos to show yet.<br>' +
+    (reason ? escapeHtml(reason) : 'Check the SHEET_CSV_URL setting and the Google Sheet.') + '</div>';
+}
+
+/* ---------------------- Folders (weekly subfolders) ----------------------
+   Mom's Elementary/Preschool Drive folders contain "Week 1", "Week 2" style
+   subfolders. The sync script tags each video with which subfolder (if any)
+   it came from as its "group". A video with no group (loose in the room's
+   top folder) shows directly on the main menu, same as always. A video
+   with a group doesn't show directly — instead, one folder button per
+   distinct group appears (e.g. "Week 1"), and clicking it opens a
+   sub-list of just that week's videos, with the same back button one
+   level up to the main menu. */
+function computeVisibleItems(){
+  if (activeGroup) {
+    return buttons.filter(b => b.group === activeGroup).map(b => ({ kind: 'video', data: b }));
+  }
+  const videoEntries = buttons.filter(b => !b.group).map(b => ({ kind: 'video', data: b }));
+  const seen = new Set();
+  const folderNames = [];
+  buttons.forEach(b => {
+    if (b.group && !seen.has(b.group)) { seen.add(b.group); folderNames.push(b.group); }
+  });
+  const folderEntries = folderNames.map(name => ({ kind: 'folder', name: name }));
+  return videoEntries.concat(folderEntries);
+}
+
+function renderButtons(){
+  const items = computeVisibleItems();
+  visibleItems = items;
+
+  if (!items.length) {
+    buttonGrid.innerHTML = '<div id="emptyState">' +
+      (activeGroup ? ('Nothing in "' + escapeHtml(activeGroup) + '" right now.') : 'No videos to show yet.') +
+      '</div>';
+    focusedIndex = 0;
+    applyFocusVisual();
+    return;
+  }
+
+  buttonGrid.innerHTML = '';
+  items.forEach((item, i) => {
+    const btn = document.createElement('button');
+    btn.dataset.index = i;
+    if (item.kind === 'folder') {
+      btn.className = 'btn btn-folder';
+      btn.style.setProperty('--btn-color', CONFIG.FOLDER_COLOR);
+      btn.innerHTML = '<div class="icon">' + escapeHtml(CONFIG.FOLDER_ICON) + '</div><div class="label">' + escapeHtml(item.name) + '</div>';
+    } else {
+      const b = item.data;
+      btn.className = 'btn btn-video';
+      btn.style.setProperty('--btn-color', b.color);
+      btn.innerHTML = '<div class="icon">' + escapeHtml(b.icon) + '</div><div class="label">' + escapeHtml(b.label) + '</div>';
+      attachThumbnail(btn, b.fileId);
+    }
+    btn.addEventListener('click', () => activateItem(i));
+    buttonGrid.appendChild(btn);
+  });
+  focusedIndex = 0;
+  applyFocusVisual();
+}
+
+function activateItem(i){
+  const item = visibleItems[i];
+  if (!item) return;
+  if (item.kind === 'folder') { enterGroup(item.name); }
+  else { playVideo(item.data); }
+}
+
+function enterGroup(name){
+  activeGroup = name;
+  renderButtons();
+  updateMenuTitle();
+  updateBackButtonLabel();
+}
+
+function backToRootMenu(){
+  activeGroup = null;
+  renderButtons();
+  updateMenuTitle();
+  updateBackButtonLabel();
+}
+
+// The corner back button (and the remote's Escape/Backspace/Back) goes up
+// one level at a time: out of a week folder to the main menu first, and
+// only back to the screensaver from the main menu itself.
+function handleMenuBack(){
+  if (activeGroup) { backToRootMenu(); } else { showScreensaver(); }
+}
+
+function updateMenuTitle(){
+  const titleEl = document.getElementById('menuTitle');
+  titleEl.textContent = activeGroup || (roomLabel ? (roomLabel + ' — ' + CONFIG.MENU_TITLE) : CONFIG.MENU_TITLE);
+}
+
+function updateBackButtonLabel(){
+  const label = activeGroup ? 'Back to menu' : 'Back to screensaver';
+  menuCloseBtn.setAttribute('aria-label', label);
+  menuCloseBtn.title = label;
+}
+
+// The player's own back button returns to wherever the video was picked
+// from — the main menu, or the specific week folder it was inside — never
+// straight past the menu to the screensaver.
+function updatePlayerBackButtonLabel(){
+  const label = activeGroup ? ('Back to ' + activeGroup) : 'Back to menu';
+  playerBackBtn.setAttribute('aria-label', label);
+  playerBackBtn.title = label;
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+/* ---------------------- Video thumbnails ---------------------- */
+// Uses Google's public thumbnail image for each Drive file so a button
+// shows the video's actual picture instead of a generic icon. This is
+// loaded quietly in the background: if a particular file's thumbnail
+// doesn't come through (not shared quite right, an unusual file type,
+// Google not generating one for it, etc.) the button just keeps its
+// plain icon+color look from a moment ago — nothing ever shows broken.
+function attachThumbnail(btn, fileId){
+  const url = 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
+  const probe = new Image();
+  probe.onload = () => {
+    btn.style.setProperty('--btn-thumb', 'url("' + url + '")');
+    btn.classList.add('has-thumb');
+  };
+  probe.src = url;
+}
+
+/* ---------------------- Screensaver audio fade ---------------------- */
+// Fades the screensaver's volume smoothly instead of an abrupt cut/jump,
+// so it ducks out when a video is picked and eases back in on return.
+let fadeTimer = null;
+function fadeScreensaverVolume(target, duration, onDone){
+  if (fadeTimer) clearInterval(fadeTimer);
+  const steps = 20;
+  const start = screensaverVideo.volume;
+  const delta = (target - start) / steps;
+  let i = 0;
+  fadeTimer = setInterval(() => {
+    i++;
+    screensaverVideo.volume = Math.max(0, Math.min(1, start + delta * i));
+    if (i >= steps) {
+      clearInterval(fadeTimer);
+      fadeTimer = null;
+      screensaverVideo.volume = target;
+      if (onDone) onDone();
+    }
+  }, duration / steps);
+}
+function duckScreensaver(){
+  if (screensaverVideo.paused || screensaverVideo.muted) { screensaverVideo.pause(); return; }
+  fadeScreensaverVolume(0, 500, () => screensaverVideo.pause());
+}
+function unduckScreensaver(){
+  screensaverVideo.volume = 0;
+  screensaverVideo.play().catch(() => {});
+  fadeScreensaverVolume(1, 600);
+}
+
+/* ---------------------- View transitions ---------------------- */
+function showScreensaver(){
+  currentView = 'screensaver';
+  activeGroup = null; // always wake up back at the main menu, not wherever a teacher left off
+  menuEl.classList.remove('open');
+  playerEl.classList.remove('open');
+  playerFrameWrap.innerHTML = ''; // stop any playing video
+  clearTimeout(playerLoadTimeout);
+  playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
+  clearIdleTimer();
+  unduckScreensaver();
+}
+
+function showMenu(){
+  currentView = 'menu';
+  playerEl.classList.remove('open');
+  playerFrameWrap.innerHTML = '';
+  clearTimeout(playerLoadTimeout);
+  playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
+  menuEl.classList.add('open');
+  clearIdleTimer();
+  renderButtons();
+  updateMenuTitle();
+  updateBackButtonLabel();
+  duckScreensaver();
+}
+
+// Plays the video directly with our own <video> element instead of embedding
+// Google Drive's own preview page. This used to be a Drive-hosted iframe with
+// Drive's own on-screen play button — but that button turned out to be
+// unreachable from a TV remote (Fully Kiosk Browser has no way to "click" into
+// cross-origin iframe content with a D-pad), so teachers had no way to start
+// a video at all. A plain <video> element is ours to control directly: we can
+// call .play() ourselves the instant the button is pressed (which is exactly
+// the kind of real button-press browsers require to allow autoplay-with-sound
+// — no extra tap needed), and our own on-screen back button works the same
+// way it does everywhere else in the app.
+//
+// Trade-off: this direct-link approach isn't an officially supported way to
+// stream a Drive file. For larger files especially, Google shows a "can't
+// scan this file for viruses" warning page instead of the actual video — a
+// real, well-documented Drive quirk for big files (bible-story-length videos
+// are exactly the size this tends to affect), not something a page setting
+// can turn off, and it turned out to affect EVERY lesson video on real
+// hardware, not just occasional large ones — so guessing at a fixed "skip
+// the warning" URL pattern isn't reliable enough on its own.
+//
+// The actually-reliable fix (confirmed against the real, current behavior
+// of Google's warning page, and modeled on gdown — a well-known, actively
+// maintained tool built specifically to download Drive files this way):
+// resolving that warning page requires reading its HTML to find the real
+// "download anyway" link buried in it, which a browser's own JavaScript is
+// blocked from doing across origins (confirmed directly — a plain fetch()
+// to Google's Drive endpoints from our own page is rejected before it even
+// gets a response). So that resolving step happens instead in a tiny free
+// helper program that runs on Netlify's own servers (see
+// netlify/functions/resolve-video.js) — servers aren't bound by that same
+// browser rule. The TV just asks our own helper "where's the real video?"
+// and gets redirected straight to it.
+//
+// That helper needs one extra one-time setup step beyond plain drag-and-drop
+// (see the setup guide) — until that's done, or if it ever fails for some
+// other reason, the old direct-guess links are still tried afterward as a
+// backup, so nothing regresses in the meantime.
+function directDriveUrls(fileId){
+  const id = encodeURIComponent(fileId);
+  return [
+    '/.netlify/functions/resolve-video?id=' + id,
+    'https://drive.usercontent.google.com/download?id=' + id + '&export=download&confirm=t',
+    'https://drive.google.com/uc?export=download&confirm=t&id=' + id,
+    'https://drive.google.com/uc?export=download&id=' + id
+  ];
+}
+
+let playerLoadTimeout = null;
+// Bumped every time a video-load attempt starts or is abandoned (back button,
+// a fresh video picked, etc). Each attempt's callbacks (error/timeout/canplay)
+// close over the token they were created with and check it before doing
+// anything — so a slow, stale callback from an attempt we've already moved
+// past (or left entirely) can never step on a later, successful one. Without
+// this guard, a delayed "error" event from an earlier failed link could fire
+// after a later link had already started playing fine, and incorrectly
+// advance past it or overwrite it with the error screen.
+let playAttemptToken = 0;
+
+function playVideo(b){
+  if (!b) return;
+  currentView = 'player';
+  menuEl.classList.remove('open');
+  playerFrameWrap.innerHTML =
+    '<video id="playerVideo" autoplay playsinline></video>' +
+    '<div id="playerError" class="player-error" hidden>' +
+      '<div class="glyph">⚠️</div>' +
+      '<p>This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
+    '</div>';
+  const videoEl = document.getElementById('playerVideo');
+  const urls = directDriveUrls(b.fileId);
+  let urlIndex = 0;
+  const myToken = ++playAttemptToken;
+
+  function tryNextUrl(){
+    if (myToken !== playAttemptToken) return; // superseded — ignore
+    clearTimeout(playerLoadTimeout);
+    if (urlIndex >= urls.length) { showPlayerError(); return; }
+    const thisUrl = urls[urlIndex];
+    urlIndex++;
+    videoEl.src = thisUrl;
+    videoEl.load(); // force a clean reset of the element's load state before we try again
+    videoEl.play().catch(() => {});
+    // Backstop: a failed attempt (e.g. Drive's warning page instead of the
+    // real file) may not always fire a clean "error" event on the <video>
+    // element. If nothing has actually started playing within a few
+    // seconds, treat this attempt as failed and move to the next one.
+    playerLoadTimeout = setTimeout(() => {
+      if (myToken !== playAttemptToken) return;
+      if (videoEl.readyState < 2) tryNextUrl();
+    }, 6000);
+  }
+
+  videoEl.addEventListener('error', () => {
+    if (myToken !== playAttemptToken) return;
+    tryNextUrl();
+  });
+  videoEl.addEventListener('playing', () => {
+    if (myToken !== playAttemptToken) return;
+    clearTimeout(playerLoadTimeout);
+  });
+  // Safety net: some browsers accept a .play() call made before any data has
+  // loaded yet without actually resuming playback once the data does arrive.
+  // Re-issuing .play() as soon as the element says it's ready to go costs
+  // nothing if playback already started, and rescues it if it didn't.
+  videoEl.addEventListener('canplay', () => {
+    if (myToken !== playAttemptToken) return;
+    clearTimeout(playerLoadTimeout);
+    videoEl.play().catch(() => {});
+  });
+  tryNextUrl();
+
+  playerEl.classList.add('open');
+  playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
+  updatePlayerBackButtonLabel();
+  startIdleTimer();
+}
+
+function showPlayerError(){
+  clearTimeout(playerLoadTimeout);
+  const vid = document.getElementById('playerVideo');
+  const err = document.getElementById('playerError');
+  if (vid) vid.style.display = 'none';
+  if (err) err.hidden = false;
+}
+
+/* ---------------------- Remote / keyboard navigation ----------------------
+   Some kiosk browsers intercept the remote's hardware Back button entirely
+   (routing it to their own admin menu) before it ever reaches this page, so
+   Escape/Backspace/GoBack can't be relied on as the only way back. The
+   on-screen corner back button is folded into the same arrow-key roving
+   focus as the video/folder tiles — it's simply treated as one extra slot
+   past the end of the grid — so a remote with only D-pad + OK can always
+   reach it and press it, with no Back button or mouse required. */
+function applyFocusVisual(){
+  const btns = buttonGrid.querySelectorAll('.btn');
+  const onBackSlot = focusedIndex >= btns.length;
+  btns.forEach((el, i) => el.classList.toggle('focused', !onBackSlot && i === focusedIndex));
+  menuCloseBtn.classList.toggle('focused', onBackSlot);
+  const el = btns[focusedIndex];
+  if (el) el.scrollIntoView({ block: 'nearest' });
+}
+
+document.addEventListener('keydown', (e) => {
+  restartIdleTimerIfActive();
+
+  if (currentView === 'screensaver') {
+    // Any key wakes the menu.
+    e.preventDefault();
+    showMenu();
+    return;
+  }
+
+  if (currentView === 'player') {
+    // Nothing else to focus in the player — any select press or Back-style
+    // key returns to the menu, since Back itself may never arrive here.
+    if (['Escape','Backspace','GoBack','Enter',' '].includes(e.key)) { e.preventDefault(); showMenu(); }
+    return;
+  }
+
+  if (currentView === 'menu') {
+    const cols = CONFIG.GRID_COLUMNS;
+    const count = visibleItems.length; // slots 0..count-1 are tiles, slot `count` is the back button
+    switch (e.key) {
+      case 'ArrowRight':
+        if (focusedIndex < count - 1) focusedIndex++;
+        applyFocusVisual(); e.preventDefault(); break;
+      case 'ArrowLeft':
+        if (focusedIndex < count && focusedIndex > 0) focusedIndex--;
+        applyFocusVisual(); e.preventDefault(); break;
+      case 'ArrowDown':
+        if (focusedIndex >= count) { /* already on the back button — nowhere further down */ }
+        else if (focusedIndex + cols >= count) focusedIndex = count; // last row -> the back button
+        else focusedIndex += cols;
+        applyFocusVisual(); e.preventDefault(); break;
+      case 'ArrowUp':
+        if (focusedIndex >= count) focusedIndex = Math.max(0, count - 1); // back button -> last tile
+        else focusedIndex = Math.max(0, focusedIndex - cols);
+        applyFocusVisual(); e.preventDefault(); break;
+      case 'Enter': case ' ':
+        if (focusedIndex >= count) { handleMenuBack(); } else { activateItem(focusedIndex); }
+        e.preventDefault(); break;
+      case 'Escape': case 'Backspace': case 'GoBack': handleMenuBack(); e.preventDefault(); break;
+    }
+  }
+});
+
+// Touch / click support (tapping the TV directly, or a mouse while testing on a Mac)
+screensaverEl.addEventListener('click', () => { if (currentView === 'screensaver') showMenu(); });
+menuCloseBtn.addEventListener('click', handleMenuBack);
+playerBackBtn.addEventListener('click', showMenu);
+
+/* ---------------------- Idle auto-return ---------------------- */
+function startIdleTimer(){
+  clearIdleTimer();
+  if (CONFIG.IDLE_RETURN_MINUTES > 0) {
+    idleTimer = setTimeout(showScreensaver, CONFIG.IDLE_RETURN_MINUTES * 60 * 1000);
+  }
+}
+function clearIdleTimer(){ if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; } }
+function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
+
+/* ---------------------- Boot ---------------------- */
+loadConfigFromSheet();
+setInterval(loadConfigFromSheet, Math.max(1, CONFIG.REFRESH_MINUTES) * 60 * 1000);
+</script>
+</body>
+</html>

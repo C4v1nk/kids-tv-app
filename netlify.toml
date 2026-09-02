@@ -1,0 +1,7 @@
+# Tells Netlify exactly where things are, so there's no guessing:
+# - the website files (index.html, screensaver.mp4) are in this same
+#   top-level folder
+# - the one small helper function lives in netlify/functions
+[build]
+  publish = "."
+  functions = "netlify/functions"
