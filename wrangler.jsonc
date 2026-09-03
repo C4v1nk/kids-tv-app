@@ -1,0 +1,27 @@
+{
+  // This is the file Cloudflare reads to know how to run this project.
+  // The important parts, in plain English:
+  //
+  // "main" tells Cloudflare "run src/index.js for every request." Without
+  // this line, Cloudflare treats the whole repo as plain static files with
+  // no code behind them at all — which is exactly what caused the
+  // "Variables cannot be added to a Worker that only has static assets"
+  // error, and is also why /watch-video never actually worked.
+  //
+  // "assets" tells that same src/index.js code where the website files
+  // live ("directory": ".", meaning this same top-level folder, same as
+  // before) and gives it a name ("ASSETS") to refer to them by. That's the
+  // "env.ASSETS.fetch(request)" line inside src/index.js — it just means
+  // "serve the normal file (like index.html), the same as always."
+  //
+  // Nothing else about the dashboard changes because of this file. It only
+  // switches on the /watch-video safety net and lets environment variables
+  // (like GOOGLE_API_KEY) be added under Settings again.
+  "name": "kids-tv-app",
+  "compatibility_date": "2024-09-23",
+  "main": "src/index.js",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  }
+}
