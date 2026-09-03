@@ -1,0 +1,32 @@
+# Tells Cloudflare which files in this folder are NOT part of the public
+# website — so it only ever publishes index.html (the actual dashboard) and
+# quietly ignores everything else in this repo (source code, notes, helper
+# scripts). Uses the same kind of pattern rules as a .gitignore file.
+#
+# The most important two lines are .git and .wrangler — without this file,
+# Cloudflare's last build was actually uploading raw pieces of this
+# project's git history and build-tool internals as if they were public
+# web pages. Nobody could reach anything sensitive through them (there's no
+# password or key stored in git), but there's no reason to publish them
+# either, so this shuts that off.
+
+.git
+.wrangler
+node_modules
+
+# Source code / config — read by Cloudflare to build the site, never
+# meant to be visited directly in a browser.
+src
+wrangler.jsonc
+
+# Everything below is project material that isn't part of the TV
+# dashboard itself (Mac helper scripts, the old Netlify version, the
+# Google Apps Script sync tool, scratch notes) — kept in this repo for
+# convenience, not meant to be public web pages.
+functions
+netlify
+netlify.toml
+scratch
+*.command
+*.gs
+cloudflare-worker.js
