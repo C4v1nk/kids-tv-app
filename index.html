@@ -237,6 +237,27 @@
     background: rgba(15,20,35,0.85); color:#fff; border-color: var(--accent); transform: scale(1.06);
   }
 
+  /* =================================================================
+     THE ONE-LINE RULE THAT MADE EVERYTHING ELSE LOOK BROKEN
+     =================================================================
+     Panels here are shown/hidden with the HTML `hidden` attribute
+     (el.hidden = true/false). A browser's built-in stylesheet turns that
+     into `display: none` — but ONLY at the weakest possible priority. Any
+     `display` rule written in this file (and `.player-error` and
+     `.player-loading` both set `display:flex`) silently outranks it.
+
+     The result: those two full-screen, solid-black panels stayed painted
+     over the player forever, no matter what `hidden` said. Videos really
+     were playing — measured readyState 4, correct dimensions, audio
+     audible — behind a black rectangle that claimed they had failed. The
+     same panel covered every picture. Every "this file won't load" report
+     traced back to this line being absent.
+
+     Declaring it explicitly, with !important, makes `hidden` mean hidden
+     everywhere on the page, permanently.
+     ================================================================= */
+  [hidden]{ display:none !important; }
+
   /* ---------- PLAYER LAYER ---------- */
   #player{
     position:fixed; inset:0; background:#000; z-index:20;
