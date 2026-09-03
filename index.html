@@ -408,7 +408,7 @@ const CONFIG = {
   // this in, the screensaver streams from Drive too (free, same as above)
   // and SCREENSAVER_URL is only used as a backup. Leave blank to keep using
   // SCREENSAVER_URL alone.
-  SCREENSAVER_FILE_ID: "",
+  SCREENSAVER_FILE_ID: "1MPfnPgmegbEedD3Nb5Mq_1My0VVCCUay",
 
   // Optional safety net, and the answer if the API key above ever stops
   // being an option. This is the address of a tiny free Cloudflare Worker
@@ -1180,7 +1180,7 @@ function playVideo(b){
     '</div>' +
     '<div id="playerError" class="player-error" hidden>' +
       '<div class="glyph">⚠️</div>' +
-      '<p>This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
+      '<p id="playerErrorHeadline">This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
       '<p class="err-detail" id="playerErrorDetail"></p>' +
     '</div>';
   const videoEl = document.getElementById('playerVideo');
@@ -1211,11 +1211,81 @@ function playVideo(b){
 
   function clearPlayTimer(){ clearTimeout(playerLoadTimeout); playerLoadTimeout = null; }
 
+  // THE SIGNATURE OF A FILE THAT ISN'T SAVED FOR STREAMING
+  // ------------------------------------------------------
+  // An .mp4 keeps its index (the "moov atom" — the table telling a player
+  // where every frame lives) either at the FRONT of the file or at the END.
+  // Front = the browser reads ~30KB and starts playing immediately. End =
+  // the browser must download the ENTIRE file before it can show one frame.
+  // Most video editors write it at the end unless told otherwise, and a
+  // 90MB lesson video like that will never start on classroom Wi-Fi.
+  //
+  // From inside the page that looks like this: the browser is actively
+  // downloading (networkState === 2, NETWORK_LOADING) but has learned
+  // nothing about the file yet (readyState === 0, HAVE_NOTHING). No error
+  // is ever thrown — it just silently downloads forever.
+  //
+  // This matters enormously for what we do next: when THIS is the problem,
+  // trying the other delivery methods is worthless (they hand over the same
+  // bytes in the same order) and actively harmful — each retry downloads
+  // another full copy of a 90MB file. So we stop, and say the true thing.
+  function looksUnstreamable(){
+    return videoEl.networkState === 2 /* NETWORK_LOADING */ && videoEl.readyState === 0 /* HAVE_NOTHING */;
+  }
+
+  // Deliberately worded to cover every cause of this exact symptom, not just
+  // the most common one. The TV can tell that bytes are arriving and that it
+  // still can't make sense of them; it can't be certain WHY (index at the end
+  // of the file is by far the usual reason, but an unusual export can do it
+  // too). Since the remedy is identical in every case — re-save the file with
+  // the Mac tool and use that copy — the message names the remedy rather than
+  // guessing at the cause. The diagnostic specifics go in the detail line.
+  const UNSTREAMABLE_HEADLINE =
+    'This video downloads, but the TV can\'t start playing it. The file needs to be re-saved ' +
+    'in a TV-friendly way. Run "Make Videos TV-Ready" on it, then put that fixed copy in Drive ' +
+    'and use it instead.';
+
+  // A clock that nothing resets.
+  //
+  // This one exists because of a trap the other two fall into: both of them
+  // are re-armed every time bytes arrive, and a file with its index at the
+  // end delivers bytes CONSTANTLY — so the "stalled" clock is perpetually
+  // reset and never fires, and the TV sits on the loading spinner forever
+  // pulling down a 90MB file it will never manage to play. (Measured, not
+  // guessed: 40 seconds of continuous download with the browser still
+  // reporting it knows nothing about the video.)
+  //
+  // A file that IS saved for streaming puts its index in the first ~30KB,
+  // so the browser announces the video's length within a second or so even
+  // on poor Wi-Fi. Twelve seconds of bytes flowing with still no length
+  // means the index isn't at the front, and no amount of further waiting
+  // (or trying a different delivery method) will change that.
+  const METADATA_MS = 12000;
+  let metadataTimeout = null;
+  function clearMetadataTimer(){ clearTimeout(metadataTimeout); metadataTimeout = null; }
+
+  function armMetadataTimer(){
+    clearMetadataTimer();
+    metadataTimeout = setTimeout(() => {
+      if (myToken !== playAttemptToken) return;
+      if (videoEl.readyState > 0) return;     // the browser knows the video — fine
+      if (!sawBytes || !looksUnstreamable()) return; // nothing arriving: the other clocks own this
+      showPlayerError(
+        'downloaded for ' + (METADATA_MS/1000) + 's from ' + currentSourceName +
+          ' without ever reading the video\'s index',
+        UNSTREAMABLE_HEADLINE
+      );
+    }, METADATA_MS);
+  }
+
   function armFirstByteTimer(){
     clearPlayTimer();
     playerLoadTimeout = setTimeout(() => {
       if (myToken !== playAttemptToken) return;
       if (sawBytes) return; // it's alive after all — the stall timer owns it now
+      // Downloading hard, but the browser still knows nothing about the file:
+      // don't call this source dead — the metadata clock above owns this case.
+      if (looksUnstreamable()) return;
       tryNextSource('no response from ' + currentSourceName + ' within ' + (FIRST_BYTE_MS/1000) + 's');
     }, FIRST_BYTE_MS);
   }
@@ -1225,6 +1295,17 @@ function playVideo(b){
     playerLoadTimeout = setTimeout(() => {
       if (myToken !== playAttemptToken) return;
       if (videoEl.readyState >= 3) return; // enough buffered to keep playing — not stalled
+      if (looksUnstreamable()) {
+        // Bytes have been pouring in for 20 seconds and the browser STILL
+        // can't tell us the video's length. That's the index-at-the-end
+        // case above — no other source can fix it, so stop here rather than
+        // downloading the same enormous file two more times.
+        showPlayerError(
+          'downloaded ' + (STALL_MS/1000) + 's of ' + currentSourceName + ' without ever reading the video\'s index',
+          UNSTREAMABLE_HEADLINE
+        );
+        return;
+      }
       tryNextSource('stalled — nothing arrived for ' + (STALL_MS/1000) + 's');
     }, STALL_MS);
   }
@@ -1274,6 +1355,7 @@ function playVideo(b){
     videoEl.load(); // clean reset of the element's load state before each try
     videoEl.play().catch(() => {});
     armFirstByteTimer();
+    armMetadataTimer();
   }
 
   // Adds the specific "this is a .mov, TVs can't play those" style sentence
@@ -1292,7 +1374,7 @@ function playVideo(b){
   }
 
   videoEl.addEventListener('progress', noteBytesArrived);
-  videoEl.addEventListener('loadedmetadata', noteBytesArrived);
+  videoEl.addEventListener('loadedmetadata', () => { clearMetadataTimer(); noteBytesArrived(); });
   videoEl.addEventListener('loadeddata', noteBytesArrived);
   videoEl.addEventListener('waiting', () => {
     // Buffering mid-playback: legitimate, but start the quiet-too-long clock
@@ -1312,6 +1394,7 @@ function playVideo(b){
     if (myToken !== playAttemptToken) return;
     hasPlayed = true;
     clearPlayTimer();
+    clearMetadataTimer();
     hideLoadingIndicator();
     // This delivery method demonstrably works on this TV — start there for
     // every video pressed from now on instead of walking the list again.
@@ -1340,19 +1423,32 @@ function playVideo(b){
   startIdleTimer();
 }
 
-function showPlayerError(detail){
+function showPlayerError(detail, headline){
   clearTimeout(playerLoadTimeout);
   const vid = document.getElementById('playerVideo');
   const loading = document.getElementById('playerLoading');
   const err = document.getElementById('playerError');
   const detailEl = document.getElementById('playerErrorDetail');
+  const headlineEl = document.getElementById('playerErrorHeadline');
+  if (headline && headlineEl) headlineEl.textContent = headline;
   // Actually stop playback here, not just hide it visually — otherwise a
   // video that keeps loading/playing in the background after this screen
   // shows (which is exactly what real testing turned up: audio audible
   // with the error message on screen) leaves teachers hearing sound from
   // a "broken" screen, which is more confusing than either working or
   // failing cleanly.
-  if (vid) { vid.pause(); vid.style.display = 'none'; }
+  // pause() alone only stops PLAYBACK — the browser happily keeps downloading
+  // the rest of the file behind the error screen. Real measurement on the live
+  // site: 80MB of a 92MB video still streaming in 70 seconds AFTER this screen
+  // appeared, for a video that never showed a single frame. That is almost
+  // certainly what drained the old host's monthly bandwidth allowance twice.
+  // Clearing the source and calling load() is what actually cancels the fetch.
+  if (vid) {
+    vid.pause();
+    vid.removeAttribute('src');
+    try { vid.load(); } catch (e) {}
+    vid.style.display = 'none';
+  }
   if (loading) loading.hidden = true;
   if (err) err.hidden = false;
   if (detailEl) detailEl.textContent = detail ? ('Detail: ' + detail) : '';
