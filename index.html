@@ -245,6 +245,12 @@
   #player.open{ display:block; }
   #playerFrameWrap{ position:absolute; inset:0; width:100%; height:100%; }
   #player iframe, #player video{ display:block; width:100%; height:100%; border:none; }
+  /* Pictures (memory-verse graphics, activity pages, etc.) use object-fit:
+     contain rather than the video/iframe default — a photo can be any shape
+     (square, portrait, whatever a phone camera produced), and stretching it
+     to fill the TV screen exactly would distort faces and text. Letterboxing
+     on black keeps it looking intentional instead of broken. */
+  #player img{ display:block; width:100%; height:100%; object-fit:contain; background:#000; }
   .player-error{
     position:absolute; inset:0; background:#000;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -697,11 +703,20 @@ function renderEmptyState(reason){
    distinct group appears (e.g. "Week 1"), and clicking it opens a
    sub-list of just that week's videos, with the same back button one
    level up to the main menu. */
+// A row is a picture (not a video) when the sync script recorded its real
+// format as "image/...". Older sheets (or a hand-added row with no Type
+// filled in) have no type at all — those default to 'video', exactly the
+// behavior this app always had, so nothing changes for anyone who hasn't
+// re-synced yet.
+function mediaKind(b){
+  return (b.type && b.type.indexOf('image/') === 0) ? 'image' : 'video';
+}
+
 function computeVisibleItems(){
   if (activeGroup) {
-    return buttons.filter(b => b.group === activeGroup).map(b => ({ kind: 'video', data: b }));
+    return buttons.filter(b => b.group === activeGroup).map(b => ({ kind: mediaKind(b), data: b }));
   }
-  const videoEntries = buttons.filter(b => !b.group).map(b => ({ kind: 'video', data: b }));
+  const videoEntries = buttons.filter(b => !b.group).map(b => ({ kind: mediaKind(b), data: b }));
   const seen = new Set();
   const folderNames = [];
   buttons.forEach(b => {
@@ -750,6 +765,7 @@ function activateItem(i){
   const item = visibleItems[i];
   if (!item) return;
   if (item.kind === 'folder') { enterGroup(item.name); }
+  else if (item.kind === 'image') { showImage(item.data); }
   else { playVideo(item.data); }
 }
 
@@ -1073,6 +1089,84 @@ let playerLoadTimeout = null;
 // after a later link had already started playing fine, and incorrectly
 // advance past it or overwrite it with the error screen.
 let playAttemptToken = 0;
+
+// -------------------------------------------------------------------------
+// PICTURE BUTTONS (memory-verse graphics, activity pages, anything Mom
+// uploads as a JPG/PNG instead of a video)
+// -------------------------------------------------------------------------
+// Much simpler than video: a picture is small, loads as one piece (no
+// seeking, no stalling mid-download, no codec/profile concerns — every
+// browser decodes JPEG/PNG/WebP the same way), and a plain <img> tag has
+// always been able to display a cross-origin picture without needing any
+// CORS header at all (that's just how <img src="..."> has worked since the
+// beginning of the web) — unlike <video>, which is why the video path above
+// needs the whole fallback ladder and ORB workarounds in the first place. So
+// this only needs two tries: Google's direct API link, then the same
+// site-helper endpoint the video player falls back to, which works for any
+// file type Google will hand it, not only videos.
+function imageSources(fileId){
+  const id = encodeURIComponent(fileId);
+  const list = [];
+  const key = (CONFIG.GOOGLE_API_KEY || '').trim();
+  if (key) {
+    list.push({ name: 'google-direct-image', url: 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key) });
+  }
+  list.push({ name: 'site-helper-image', url: '/watch-video?id=' + id });
+  return list;
+}
+
+function showImage(b){
+  if (!b) return;
+  currentView = 'player';
+  menuEl.classList.remove('open');
+  playerFrameWrap.innerHTML =
+    '<img id="playerImage" alt="">' +
+    '<div id="playerLoading" class="player-loading">' +
+      '<div class="spinner"></div>' +
+      '<p>Loading picture…</p>' +
+    '</div>' +
+    '<div id="playerError" class="player-error" hidden>' +
+      '<div class="glyph">⚠️</div>' +
+      '<p>This picture couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
+      '<p class="err-detail" id="playerErrorDetail"></p>' +
+    '</div>';
+  const imgEl = document.getElementById('playerImage');
+  const sources = imageSources(b.fileId);
+  let sourceIndex = 0;
+  const myToken = ++playAttemptToken;
+
+  function hideLoadingIndicator(){
+    const loading = document.getElementById('playerLoading');
+    if (loading) loading.hidden = true;
+  }
+
+  function tryNextImageSource(lastErrorDetail){
+    if (myToken !== playAttemptToken) return; // superseded — a Back press or a new picture moved on already
+    if (sourceIndex >= sources.length) {
+      showPlayerError(lastErrorDetail);
+      return;
+    }
+    const src = sources[sourceIndex];
+    sourceIndex++;
+    imgEl.src = src.url;
+  }
+
+  imgEl.addEventListener('load', () => {
+    if (myToken !== playAttemptToken) return;
+    hideLoadingIndicator();
+  });
+  imgEl.addEventListener('error', () => {
+    if (myToken !== playAttemptToken) return;
+    tryNextImageSource('picture failed to load from ' + (sources[sourceIndex - 1] ? sources[sourceIndex - 1].name : 'source'));
+  });
+
+  tryNextImageSource();
+
+  playerEl.classList.add('open');
+  playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
+  updatePlayerBackButtonLabel();
+  startIdleTimer();
+}
 
 function playVideo(b){
   if (!b) return;
