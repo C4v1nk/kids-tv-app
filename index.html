@@ -17,6 +17,15 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Opening a connection to Google costs about a third of a second on a cheap
+     TV stick (DNS + handshake). Doing it here, while the page is still
+     drawing, means that cost is already paid by the time a teacher actually
+     presses a video — so the first press feels instant instead of laggy.
+     drive.google.com serves the button thumbnails; googleapis.com serves the
+     videos themselves once an API key is configured. -->
+<link rel="preconnect" href="https://drive.google.com" crossorigin>
+<link rel="preconnect" href="https://www.googleapis.com" crossorigin>
+<link rel="dns-prefetch" href="https://docs.google.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -101,7 +110,13 @@
        smaller than a button, which is what was letting rows visually
        overlap when the window was shorter than a TV screen (e.g. testing
        in a normal desktop browser instead of full-screen on the TV). */
-    grid-auto-rows: minmax(200px, auto);
+    /* Sized from the screen's own height rather than a fixed pixel number, so
+       tiles are generous on a 55" TV without overflowing a laptop window while
+       you're testing. The cap keeps a very tall screen from making three
+       enormous tiles; the floor keeps a short one usable. Roughly 16:9 at TV
+       size, which is what makes a video thumbnail look like a video thumbnail
+       instead of a cropped strip. */
+    grid-auto-rows: minmax(clamp(180px, 23vh, 280px), auto);
     align-content: start;
     gap: 28px;
     flex: 1;
@@ -138,7 +153,12 @@
   .btn .label{ font-family:'Fredoka', sans-serif; font-weight:600; font-size: clamp(1.5rem, 2.4vw, 2rem); line-height:1.15; }
   .btn:hover{ border-color: var(--btn-color); }
   .btn.focused{
-    border-color: var(--btn-color);
+    /* Always the same orange, never the per-room color: from the back of a
+       classroom the only thing that matters is instantly seeing which tile is
+       selected, and one consistent highlight colour reads faster than one
+       that changes meaning by room. It also matches the orange glow around
+       it, instead of ringing a blue border with an orange halo. */
+    border-color: var(--accent);
     background: linear-gradient(160deg, var(--bg-panel-2), var(--bg-panel));
     transform: scale(1.045);
     box-shadow: var(--focus-ring), 0 18px 34px rgba(0,0,0,0.45);
@@ -162,7 +182,20 @@
     padding: 20px 18px 18px;
   }
   .btn-video.has-thumb .icon{ display:none; }
+  /* A thumbnail is a frame of someone else's video — it can be white sky,
+     bright yellow, anything. A text shadow alone isn't always enough to keep
+     a title readable against that. This lays a soft darkening gradient over
+     just the bottom of the tile, under the title only, so the words are
+     always legible without dimming the picture itself. */
+  .btn-video.has-thumb::after{
+    content:'';
+    position:absolute; left:0; right:0; bottom:0; height:58%;
+    border-radius: 0 0 calc(var(--radius) - 3px) calc(var(--radius) - 3px);
+    background: linear-gradient(to top, rgba(3,7,18,0.88), rgba(3,7,18,0.45) 45%, rgba(3,7,18,0));
+    pointer-events:none;
+  }
   .btn-video.has-thumb .label{
+    position:relative; z-index:1;
     text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 3px 10px rgba(0,0,0,.55);
   }
 
@@ -219,6 +252,15 @@
   }
   .player-error .glyph{ font-size:4rem; }
   .player-error p{ color:var(--muted); font-size:1.3rem; max-width:640px; margin:0; }
+  /* Small, quiet technical line under the friendly message — invisible unless
+     something is actually wrong, but when it shows up it turns a screenshot
+     of this screen into something we can diagnose without a back-and-forth:
+     it names the exact reason the browser gave up (stalled vs. a real
+     decode/format problem vs. a network hiccup) instead of just "broken." */
+  .player-error .err-detail{
+    color:rgba(255,255,255,0.35); font-size:0.85rem; max-width:640px;
+    margin:0; font-family:ui-monospace, monospace;
+  }
 
   /* Shown the instant a video is picked, until real playback actually
      starts. A video routed through the Drive-resolving helper can
@@ -307,6 +349,11 @@ const CONFIG = {
   // screensaver after this many minutes of no interaction. Set to 0 to disable.
   IDLE_RETURN_MINUTES: 45,
 
+  // When a video reaches its end, go back to the list of videos automatically
+  // instead of leaving a frozen last frame on the wall. Set to false if you'd
+  // rather it just stop on the final frame.
+  RETURN_TO_MENU_WHEN_VIDEO_ENDS: true,
+
   // Default color for buttons that don't specify their own color in the sheet.
   DEFAULT_BUTTON_COLOR: "#f6ad37",
 
@@ -322,7 +369,50 @@ const CONFIG = {
   // instead, paste that site's full video address here, e.g.
   // "https://your-screensaver-site.netlify.app/screensaver.mp4" — either
   // way works exactly the same from here on.
-  SCREENSAVER_URL: "https://firstsarasota-kids-tv-screensaver.netlify.app/screensaver.mp4"
+  SCREENSAVER_URL: "https://firstsarasota-kids-tv-screensaver.netlify.app/screensaver.mp4",
+
+  // ------------------------------------------------------------------
+  // GOOGLE API KEY — the single most important setting on this page.
+  // ------------------------------------------------------------------
+  // Leave this blank and everything still works exactly as it does today:
+  // every video is fetched by our own site's helper, which downloads it
+  // from Google and passes it along to the TV. That works — but every byte
+  // of every video then counts against the website host's monthly bandwidth
+  // allowance, which for a full month of Sunday lessons across ten TVs is
+  // far more than a free plan includes.
+  //
+  // Paste a Google API key here instead, and the TV asks Google for the
+  // video *directly* — the video never travels through our website at all.
+  // That makes it free, and noticeably faster (Google's own servers are
+  // closer and quicker than a relay), and it removes the most fragile part
+  // of the whole system: without a key, the helper has to read Google's
+  // "are you sure you want to download this?" web page and hunt for the
+  // real link inside it, which breaks whenever Google changes that page.
+  // With a key, it just asks Google's official API and gets the video.
+  //
+  // The setup guide has the click-by-click steps (about five minutes, free,
+  // no credit card). The key only ever grants read access to files that are
+  // already shared publicly, so it's safe to have it sitting in this file.
+  //
+  // If the key is ever wrong, expired or restricted, nothing breaks — the
+  // TV quietly falls back to the helper, exactly as if this were blank.
+  GOOGLE_API_KEY: "AIzaSyDDAI4Tu9tVkldAife_SlLTnR-b6zW6ZSE",
+
+  // Optional: the Google Drive file ID of the screensaver loop. If you fill
+  // this in, the screensaver streams from Drive too (free, same as above)
+  // and SCREENSAVER_URL is only used as a backup. Leave blank to keep using
+  // SCREENSAVER_URL alone.
+  SCREENSAVER_FILE_ID: "",
+
+  // Optional safety net, and the answer if the API key above ever stops
+  // being an option. This is the address of a tiny free Cloudflare Worker
+  // (cloudflare-worker.js, included with this app — you paste it into
+  // Cloudflare's website, no installing anything) that does the same job as
+  // our own site's helper, but on a service whose free plan doesn't charge
+  // for the video traffic. Looks like:
+  //   "https://kids-tv-video.YOUR-NAME.workers.dev/"
+  // Leave blank unless you set one up.
+  VIDEO_PROXY_URL: ""
 };
 /* =================== END CONFIG — don't need to edit below ================= */
 
@@ -383,27 +473,57 @@ let currentView = 'screensaver'; // 'screensaver' | 'menu' | 'player'
 // fine. A <video> element loading a file doesn't have that restriction, so
 // checking this way works identically whether the file is on this same
 // site or a different one.
-(function initScreensaver(){
-  const src = CONFIG.SCREENSAVER_URL;
-  let settled = false;
+// Every place the screensaver loop could come from, cheapest first. This
+// matters more than it looks: the screensaver is the one video that plays
+// on all ten TVs continuously, all morning. Served from our own website
+// that is, by a wide margin, the single largest thing the site does — a
+// two-hour loop re-fetched by ten TVs runs into many gigabytes a Sunday,
+// which is exactly the kind of number that exhausts a free hosting plan
+// and takes the whole dashboard offline with it. Fetched straight from
+// Google Drive instead, it costs the website nothing at all.
+function screensaverSources(){
+  const list = [];
+  const key = (CONFIG.GOOGLE_API_KEY || '').trim();
+  const id = (CONFIG.SCREENSAVER_FILE_ID || '').trim();
+  if (key && id) {
+    const apiUrl = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) +
+                   '?alt=media&key=' + encodeURIComponent(key);
+    list.push({ url: apiUrl, crossOrigin: 'anonymous' });
+    list.push({ url: apiUrl, crossOrigin: null });
+  }
+  if (CONFIG.SCREENSAVER_URL) list.push({ url: CONFIG.SCREENSAVER_URL, crossOrigin: null });
+  if (id && !key) list.push({ url: '/watch-video?id=' + encodeURIComponent(id), crossOrigin: null });
+  return list;
+}
 
-  function onFailed(){
-    if (settled) return;
-    settled = true;
-    showScreensaverFallback();
+(function initScreensaver(){
+  const sources = screensaverSources();
+  let i = 0;
+
+  function tryNext(){
+    if (i >= sources.length) { showScreensaverFallback(); return; }
+    const s = sources[i];
+    i++;
+    if (s.crossOrigin) screensaverVideo.setAttribute('crossorigin', s.crossOrigin);
+    else screensaverVideo.removeAttribute('crossorigin');
+    screensaverVideo.src = s.url;
+    screensaverVideo.load();
+    tryPlay();
   }
 
-  screensaverVideo.addEventListener('error', onFailed);
-  screensaverVideo.src = src;
+  function tryPlay(){
+    screensaverVideo.play().catch(() => {
+      // Autoplay-with-sound was blocked by the browser. Fall back to
+      // muted autoplay so at least the picture loops; a single tap
+      // anywhere unmutes it (kiosk browsers usually allow this).
+      screensaverVideo.muted = true;
+      screensaverVideo.play().catch(()=>{});
+    });
+  }
+
+  screensaverVideo.addEventListener('error', tryNext);
   screensaverVideo.muted = false;
-  const tryPlay = () => screensaverVideo.play().catch(() => {
-    // Autoplay-with-sound was blocked by the browser. Fall back to
-    // muted autoplay so at least the picture loops; a single tap
-    // anywhere unmutes it (kiosk browsers usually allow this).
-    screensaverVideo.muted = true;
-    screensaverVideo.play().catch(()=>{});
-  });
-  tryPlay();
+  tryNext();
 })();
 
 function showScreensaverFallback(){
@@ -463,6 +583,18 @@ function parseCSV(text){
   return rows.filter(r => r.some(cell => cell.trim() !== ''));
 }
 
+// The seventh column has held two different things over this app's life: on
+// older sheets it's a "Last Synced" timestamp, and on current ones it's the
+// file's real format ("video/mp4"). Rather than guess by which version of the
+// sync script is installed — and rather than tell a teacher a Bible story is
+// "not a video" because a date landed in that column — only accept a value
+// that actually looks like a format, and ignore anything else.
+function sanitizeMimeType(raw){
+  const v = String(raw || '').trim().toLowerCase();
+  if (!v) return '';
+  return /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(v) ? v : '';
+}
+
 function extractDriveId(raw){
   if (!raw) return null;
   raw = raw.trim();
@@ -487,14 +619,18 @@ async function loadConfigFromSheet(){
 
     // Skip header row (first row). Columns: Label, Drive Link or File ID,
     // Color (optional), Icon (optional), Room (optional), Group (optional —
-    // which week/subfolder a video came from; blank = shows on the main menu).
+    // which week/subfolder a video came from; blank = shows on the main menu),
+    // Type (optional — the file's real format, e.g. "video/mp4", written by
+    // the sync script; blank on older sheets, which is fine: it's only used
+    // to explain a failure more precisely if one happens).
     const parsedAll = rows.slice(1).map(r => ({
       label: (r[0] || '').trim(),
       fileId: extractDriveId(r[1] || ''),
       color: (r[2] || '').trim() || CONFIG.DEFAULT_BUTTON_COLOR,
       icon: (r[3] || '').trim() || '▶️',
       room: (r[4] || '').trim().toLowerCase(),
-      group: (r[5] || '').trim()
+      group: (r[5] || '').trim(),
+      type: sanitizeMimeType(r[6])
     })).filter(b => b.label && b.fileId);
 
     if (!parsedAll.length) throw new Error('No valid rows found (check Label + Drive link columns)');
@@ -836,11 +972,95 @@ function showMenu(){
 // already sitting on this same site, with nothing "foreign" left for ORB to
 // block. Verified end-to-end, including that a real decoded video frame
 // actually loads this way with no blocked request anywhere in the chain.
-function directDriveUrls(fileId){
+// -------------------------------------------------------------------------
+// WHERE A VIDEO'S BYTES ACTUALLY COME FROM
+// -------------------------------------------------------------------------
+// There are two ways to get a Drive video onto the TV, and the app tries the
+// good one first and quietly falls back to the other if it can't:
+//
+//   1. "google-direct" — ask Google's official Drive API for the file, with
+//      the API key from CONFIG. The video travels straight from Google to the
+//      TV and never touches our website, which makes it FREE (our website
+//      host charges for every byte it serves) and faster, and it skips the
+//      fragile business of reading Google's "can't scan this for viruses"
+//      warning page entirely — the API just hands over the file. Two flavors
+//      are tried, one asking Google's permission-to-share headers explicitly
+//      and one not, because which of those a browser is happy with varies.
+//
+//   2. "site-helper" — our own /watch-video helper, which downloads the file
+//      server-side and passes the bytes along. Always works, needs no key,
+//      but every byte counts against our website host's monthly allowance.
+//
+// If no API key is configured, the list is just the helper — exactly the
+// behavior this app had before, so nothing can break by leaving it blank.
+function videoSources(fileId){
   const id = encodeURIComponent(fileId);
-  return [
-    '/watch-video?id=' + id
-  ];
+  const list = [];
+  const key = (CONFIG.GOOGLE_API_KEY || '').trim();
+  if (key) {
+    const apiUrl = 'https://www.googleapis.com/drive/v3/files/' + id +
+                   '?alt=media&key=' + encodeURIComponent(key);
+    list.push({ name: 'google-direct', url: apiUrl, crossOrigin: 'anonymous' });
+    list.push({ name: 'google-direct-plain', url: apiUrl, crossOrigin: null });
+  }
+  const proxy = (CONFIG.VIDEO_PROXY_URL || '').trim();
+  if (proxy) {
+    list.push({
+      name: 'free-proxy',
+      url: proxy.replace(/\/+$/, '') + '/?id=' + id,
+      crossOrigin: 'anonymous'
+    });
+  }
+  list.push({ name: 'site-helper', url: '/watch-video?id=' + id, crossOrigin: null });
+  return list;
+}
+
+// Once one of those methods has actually played a video on this TV, every
+// later video that morning starts with that same method instead of walking
+// the list again from the top. Without this, if the first method didn't work
+// on this device, EVERY video a teacher pressed would sit there failing over
+// for several seconds first — the difference between "instant" and "this
+// thing is broken" from the front of a classroom.
+let preferredSourceName = '';
+try { preferredSourceName = localStorage.getItem('ktv_preferred_source') || ''; } catch(e) {}
+
+function rememberPreferredSource(name){
+  if (!name || name === preferredSourceName) return;
+  preferredSourceName = name;
+  try { localStorage.setItem('ktv_preferred_source', name); } catch(e) {}
+}
+
+function orderedVideoSources(fileId){
+  const list = videoSources(fileId);
+  const i = list.findIndex(s => s.name === preferredSourceName);
+  if (i <= 0) return list; // not found, or already first — nothing to reorder
+  return [list[i]].concat(list.slice(0, i)).concat(list.slice(i + 1));
+}
+
+// -------------------------------------------------------------------------
+// FILE FORMATS A TV CAN AND CAN'T PLAY
+// -------------------------------------------------------------------------
+// The sync script records each file's real format in the Sheet. When a video
+// fails, that lets the screen say the actual reason ("this is a .mov, TVs
+// can't play those") instead of a generic shrug — which is the difference
+// between a fixable problem and a mystery.
+const FORMAT_NOTES = {
+  'video/quicktime': 'This file is a QuickTime .mov. TVs usually can’t play those — it needs to be re-saved as an MP4.',
+  'video/x-msvideo': 'This file is an .avi. TVs can’t play those — it needs to be re-saved as an MP4.',
+  'video/x-ms-wmv':  'This file is a Windows .wmv. TVs can’t play those — it needs to be re-saved as an MP4.',
+  'video/x-matroska':'This file is an .mkv. TVs usually can’t play those — it needs to be re-saved as an MP4.',
+  'video/mpeg':      'This file is an old .mpg. TVs usually can’t play those — it needs to be re-saved as an MP4.',
+  'video/3gpp':      'This file is a phone .3gp. TVs usually can’t play those — it needs to be re-saved as an MP4.'
+};
+
+function formatHintFor(mimeType){
+  const t = (mimeType || '').trim().toLowerCase();
+  if (!t) return '';
+  if (FORMAT_NOTES[t]) return FORMAT_NOTES[t];
+  if (t.indexOf('video/') !== 0) {
+    return 'This isn’t a video file at all (Google says it’s ' + t + ') — it probably landed in the folder by mistake.';
+  }
+  return '';
 }
 
 let playerLoadTimeout = null;
@@ -867,29 +1087,52 @@ function playVideo(b){
     '<div id="playerError" class="player-error" hidden>' +
       '<div class="glyph">⚠️</div>' +
       '<p>This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
+      '<p class="err-detail" id="playerErrorDetail"></p>' +
     '</div>';
   const videoEl = document.getElementById('playerVideo');
-  const urls = directDriveUrls(b.fileId);
-  let urlIndex = 0;
+  const sources = orderedVideoSources(b.fileId);
+  let sourceIndex = 0;
+  let currentSourceName = '';
   const myToken = ++playAttemptToken;
 
-  // Rather than judging "is this taking too long?" against a single fixed
-  // clock from the moment we pressed play, this timer restarts every time
-  // the browser reports real download progress (the `progress` event,
-  // below) — so a video that's genuinely still on its way, just slowly
-  // (real, observed behavior for a file whose picture-locating metadata
-  // sits at the end rather than the front, fetched through a helper that
-  // itself needs a moment to find Google's real link first) is never cut
-  // off while data keeps arriving. Only real silence — nothing at all
-  // arriving for this long — counts as stalled.
-  const STALL_LIMIT_MS = 15000;
+  // Two very different questions, so two very different clocks:
+  //
+  //  * FIRST_BYTE_MS — "has this way of fetching the video produced ANY
+  //    sign of life?" If a delivery method is simply not going to work on
+  //    this TV (wrong key, blocked, whatever), waiting on it is pointless;
+  //    give up quickly and try the next one. Kept short because there IS a
+  //    next thing to try.
+  //
+  //  * STALL_MS — "bytes were flowing and then everything went quiet."
+  //    Kept generous, because a video that's genuinely mid-download must
+  //    never be cut off just for being slow. This is the mistake an earlier
+  //    version made: a flat 6-second clock killed videos that were working
+  //    fine, and the "failed" screen appeared over a video still happily
+  //    downloading in the background.
+  const FIRST_BYTE_MS = 9000;
+  const STALL_MS = 20000;
 
-  function armStallTimer(){
-    clearTimeout(playerLoadTimeout);
+  let sawBytes = false;   // this source has produced real data
+  let hasPlayed = false;  // playback actually started — never restart after this
+
+  function clearPlayTimer(){ clearTimeout(playerLoadTimeout); playerLoadTimeout = null; }
+
+  function armFirstByteTimer(){
+    clearPlayTimer();
     playerLoadTimeout = setTimeout(() => {
       if (myToken !== playAttemptToken) return;
-      if (videoEl.readyState < 2) tryNextUrl();
-    }, STALL_LIMIT_MS);
+      if (sawBytes) return; // it's alive after all — the stall timer owns it now
+      tryNextSource('no response from ' + currentSourceName + ' within ' + (FIRST_BYTE_MS/1000) + 's');
+    }, FIRST_BYTE_MS);
+  }
+
+  function armStallTimer(){
+    clearPlayTimer();
+    playerLoadTimeout = setTimeout(() => {
+      if (myToken !== playAttemptToken) return;
+      if (videoEl.readyState >= 3) return; // enough buffered to keep playing — not stalled
+      tryNextSource('stalled — nothing arrived for ' + (STALL_MS/1000) + 's');
+    }, STALL_MS);
   }
 
   function hideLoadingIndicator(){
@@ -897,32 +1140,88 @@ function playVideo(b){
     if (loading) loading.hidden = true;
   }
 
-  function tryNextUrl(){
+  // Human-readable translations of the browser's own MediaError codes (see
+  // https://developer.mozilla.org/docs/Web/API/MediaError/code). This is the
+  // one piece of information that says WHICH kind of failure this is without
+  // needing another round of screenshots: "network" means the bytes never
+  // fully arrived; "decode" means they arrived but this TV couldn't play
+  // what's inside the file (an export/codec problem with that one video);
+  // "unsupported" often means the address didn't return a real video at all.
+  const MEDIA_ERROR_HINTS = {
+    1: 'playback was stopped before it finished loading',
+    2: 'network error — the video stopped downloading partway through',
+    3: 'decode error — the file downloaded but this TV could not play what\'s inside it',
+    4: 'unsupported — the browser doesn\'t recognize this as a playable video'
+  };
+
+  function tryNextSource(lastErrorDetail){
     if (myToken !== playAttemptToken) return; // superseded — ignore
-    if (urlIndex >= urls.length) { showPlayerError(); return; }
-    const thisUrl = urls[urlIndex];
-    urlIndex++;
-    videoEl.src = thisUrl;
-    videoEl.load(); // force a clean reset of the element's load state before we try again
+
+    // Once a video has genuinely started playing, never yank it back to try
+    // a different address — at that point any error is a real failure worth
+    // showing, not something a different delivery method would fix.
+    if (hasPlayed) { showPlayerError(withFormatHint(lastErrorDetail)); return; }
+
+    clearPlayTimer();
+    if (sourceIndex >= sources.length) {
+      showPlayerError(withFormatHint(lastErrorDetail));
+      return;
+    }
+    const src = sources[sourceIndex];
+    sourceIndex++;
+    currentSourceName = src.name;
+    sawBytes = false;
+    // Whether we ask Google for explicit cross-site permission headers has to
+    // be decided BEFORE the address is set, because the browser reads that
+    // setting at the moment it starts fetching.
+    if (src.crossOrigin) videoEl.setAttribute('crossorigin', src.crossOrigin);
+    else videoEl.removeAttribute('crossorigin');
+    videoEl.src = src.url;
+    videoEl.load(); // clean reset of the element's load state before each try
     videoEl.play().catch(() => {});
-    armStallTimer();
+    armFirstByteTimer();
   }
 
-  videoEl.addEventListener('progress', () => {
-    // More bytes just arrived — genuinely still loading, not stalled.
-    // Push the deadline back out instead of letting a slow-but-working
-    // load get cut off partway through.
+  // Adds the specific "this is a .mov, TVs can't play those" style sentence
+  // when the Sheet told us this file's real format and that format explains
+  // the failure — far more useful than a bare error code.
+  function withFormatHint(detail){
+    const hint = formatHintFor(b.type);
+    if (!hint) return detail;
+    return (detail ? detail + ' · ' : '') + hint;
+  }
+
+  function noteBytesArrived(){
     if (myToken !== playAttemptToken) return;
-    if (videoEl.readyState < 2) armStallTimer();
+    sawBytes = true;
+    if (videoEl.readyState < 3) armStallTimer(); else clearPlayTimer();
+  }
+
+  videoEl.addEventListener('progress', noteBytesArrived);
+  videoEl.addEventListener('loadedmetadata', noteBytesArrived);
+  videoEl.addEventListener('loadeddata', noteBytesArrived);
+  videoEl.addEventListener('waiting', () => {
+    // Buffering mid-playback: legitimate, but start the quiet-too-long clock
+    // so a video that never recovers doesn't sit frozen forever.
+    if (myToken !== playAttemptToken) return;
+    armStallTimer();
   });
   videoEl.addEventListener('error', () => {
     if (myToken !== playAttemptToken) return;
-    tryNextUrl();
+    const mediaErr = videoEl.error;
+    const detail = (mediaErr ? (MEDIA_ERROR_HINTS[mediaErr.code] || ('error code ' + mediaErr.code)) : 'unknown error')
+                 + ' (' + currentSourceName + ')';
+    console.error('[KidsTV] video error:', detail, mediaErr);
+    tryNextSource(detail);
   });
   videoEl.addEventListener('playing', () => {
     if (myToken !== playAttemptToken) return;
-    clearTimeout(playerLoadTimeout);
+    hasPlayed = true;
+    clearPlayTimer();
     hideLoadingIndicator();
+    // This delivery method demonstrably works on this TV — start there for
+    // every video pressed from now on instead of walking the list again.
+    rememberPreferredSource(currentSourceName);
   });
   // Safety net: some browsers accept a .play() call made before any data has
   // loaded yet without actually resuming playback once the data does arrive.
@@ -930,11 +1229,16 @@ function playVideo(b){
   // nothing if playback already started, and rescues it if it didn't.
   videoEl.addEventListener('canplay', () => {
     if (myToken !== playAttemptToken) return;
-    clearTimeout(playerLoadTimeout);
     hideLoadingIndicator();
     videoEl.play().catch(() => {});
   });
-  tryNextUrl();
+  // A finished video shouldn't leave a frozen last frame on the wall — go
+  // back to the list the teacher picked it from, ready for the next one.
+  videoEl.addEventListener('ended', () => {
+    if (myToken !== playAttemptToken) return;
+    if (CONFIG.RETURN_TO_MENU_WHEN_VIDEO_ENDS) showMenu();
+  });
+  tryNextSource();
 
   playerEl.classList.add('open');
   playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
@@ -942,11 +1246,12 @@ function playVideo(b){
   startIdleTimer();
 }
 
-function showPlayerError(){
+function showPlayerError(detail){
   clearTimeout(playerLoadTimeout);
   const vid = document.getElementById('playerVideo');
   const loading = document.getElementById('playerLoading');
   const err = document.getElementById('playerError');
+  const detailEl = document.getElementById('playerErrorDetail');
   // Actually stop playback here, not just hide it visually — otherwise a
   // video that keeps loading/playing in the background after this screen
   // shows (which is exactly what real testing turned up: audio audible
@@ -956,6 +1261,7 @@ function showPlayerError(){
   if (vid) { vid.pause(); vid.style.display = 'none'; }
   if (loading) loading.hidden = true;
   if (err) err.hidden = false;
+  if (detailEl) detailEl.textContent = detail ? ('Detail: ' + detail) : '';
 }
 
 /* ---------------------- Remote / keyboard navigation ----------------------
@@ -975,24 +1281,81 @@ function applyFocusVisual(){
   if (el) el.scrollIntoView({ block: 'nearest' });
 }
 
+/* ---------------------- The remote's own Back button ----------------------
+   The onn remote's Back button never reaches this page as a key press — on
+   Android TV the system swallows it and hands it to whichever app is running
+   (here, the kiosk browser), so no amount of listening for a "Back" key will
+   ever see it. What the kiosk browser DOES do with it, when its "Enable Back
+   Button" setting is on (that one is free, not a paid extra), is the ordinary
+   browser thing: go one step back in page history.
+
+   So instead of trying to catch a key that never arrives, this keeps one
+   spare history entry parked behind the page at all times. Pressing Back
+   spends that spare entry, which fires the `popstate` event below — that's
+   our signal — and we immediately park a fresh one so the next press works
+   the same way. The page itself never actually goes anywhere, so Back can
+   never accidentally exit the dashboard; it just walks up one level exactly
+   like the on-screen corner button: out of a video to the list it came from,
+   out of a week folder to the main menu, and from the main menu back to the
+   screensaver. */
+function goBackOneLevel(){
+  if (currentView === 'player') { showMenu(); return; }
+  if (currentView === 'menu') { handleMenuBack(); return; }
+  // Already at the screensaver — there's nothing above it to go back to.
+}
+
+function parkSpareHistoryEntry(){
+  try { history.pushState({ ktvSpare: true }, ''); } catch (e) {}
+}
+
+(function initHistoryBackButton(){
+  try {
+    history.replaceState({ ktvBase: true }, '');
+    parkSpareHistoryEntry();
+    window.addEventListener('popstate', () => {
+      restartIdleTimerIfActive();
+      goBackOneLevel();
+      parkSpareHistoryEntry(); // re-arm so the next Back press works too
+    });
+  } catch (e) {
+    // Very old/odd browsers without the history API: the on-screen back
+    // button and the keys below still cover everything.
+  }
+})();
+
 document.addEventListener('keydown', (e) => {
   restartIdleTimerIfActive();
 
+  // Back-ish keys, across every remote/browser spelling we've seen. Android's
+  // own back key is code 4; some TV browsers send Escape or a named GoBack.
+  const isBackKey = ['Escape','Backspace','GoBack','BrowserBack'].includes(e.key) || e.keyCode === 4;
+
   if (currentView === 'screensaver') {
-    // Any key wakes the menu.
+    if (isBackKey) return; // Back at the screensaver does nothing — already home
+    // Any other key wakes the menu.
     e.preventDefault();
     showMenu();
     return;
   }
 
   if (currentView === 'player') {
+    const vid = document.getElementById('playerVideo');
+    // Left/right nudge through the video — handy for replaying a line of a
+    // memory verse without starting the whole thing over.
+    if (e.key === 'ArrowLeft' && vid) { vid.currentTime = Math.max(0, vid.currentTime - 10); e.preventDefault(); return; }
+    if (e.key === 'ArrowRight' && vid) { vid.currentTime = vid.currentTime + 10; e.preventDefault(); return; }
+    if ((e.key === 'MediaPlayPause' || e.key === 'MediaPause' || e.key === 'MediaPlay') && vid) {
+      if (vid.paused) vid.play().catch(()=>{}); else vid.pause();
+      e.preventDefault(); return;
+    }
     // Nothing else to focus in the player — any select press or Back-style
     // key returns to the menu, since Back itself may never arrive here.
-    if (['Escape','Backspace','GoBack','Enter',' '].includes(e.key)) { e.preventDefault(); showMenu(); }
+    if (isBackKey || ['Enter',' '].includes(e.key)) { e.preventDefault(); showMenu(); }
     return;
   }
 
   if (currentView === 'menu') {
+    if (isBackKey) { handleMenuBack(); e.preventDefault(); return; }
     const cols = CONFIG.GRID_COLUMNS;
     const count = visibleItems.length; // slots 0..count-1 are tiles, slot `count` is the back button
     switch (e.key) {
@@ -1014,7 +1377,6 @@ document.addEventListener('keydown', (e) => {
       case 'Enter': case ' ':
         if (focusedIndex >= count) { handleMenuBack(); } else { activateItem(focusedIndex); }
         e.preventDefault(); break;
-      case 'Escape': case 'Backspace': case 'GoBack': handleMenuBack(); e.preventDefault(); break;
     }
   }
 });
@@ -1034,7 +1396,26 @@ function startIdleTimer(){
 function clearIdleTimer(){ if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; } }
 function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
 
-/* ---------------------- Boot ---------------------- */
+/* ---------------------- Boot ----------------------
+   Draw the list from the copy saved on this TV first, then refresh from the
+   Google Sheet in the background. Fetching the Sheet takes a second or two on
+   a cheap TV stick; without this, a teacher who walks up and presses the
+   remote during those first seconds gets "Loading the lesson list…" and a
+   blank grid. With it, the buttons are already there — and if the Wi-Fi
+   happens to be down that morning, they're there anyway. */
+(function bootFromCache(){
+  try {
+    const cached = JSON.parse(localStorage.getItem('ktv_last_good_config') || 'null');
+    if (cached && cached.length) {
+      buttons = cached;
+      loadThumbnailsUpFront(buttons);
+      renderButtons();
+      updateMenuTitle();
+      updateBackButtonLabel();
+    }
+  } catch (e) {}
+})();
+
 loadConfigFromSheet();
 setInterval(loadConfigFromSheet, Math.max(1, CONFIG.REFRESH_MINUTES) * 60 * 1000);
 </script>

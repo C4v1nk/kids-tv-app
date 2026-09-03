@@ -118,10 +118,55 @@ function resolveNextUrlFromHtml(html) {
   return null;
 }
 
+// When none of resolveNextUrlFromHtml's three known "here's the real
+// download link" shapes match, that alone doesn't say WHY — it could be a
+// wrong/deleted file id, a file that was never actually shared publicly, or
+// some other Google page we've never seen. Rather than send back one generic
+// guess every time, look at what Google actually did and say THAT — so the
+// next screenshot of this error is self-diagnosing instead of needing
+// another round of back-and-forth to figure out which of these it is.
+function classifyUnresolvedPage(html, finalUrl) {
+  // Google bounced the request to a sign-in wall. This happens when a file
+  // isn't actually public even if the folder it lives in is — sharing
+  // doesn't always get inherited when a file is moved in rather than
+  // uploaded directly into an already-shared folder.
+  if (finalUrl && /accounts\.google\.com/.test(finalUrl)) {
+    return (
+      'Google asked us to sign in before it would show this file — meaning this ' +
+      'specific file isn\'t shared as "Anyone with the link," even though the folder ' +
+      'it\'s in might be. Ask your director to open this exact file in Google Drive, ' +
+      'click Share, and set it to "Anyone with the link" (Viewer is enough).'
+    );
+  }
+
+  // The file id doesn't point at anything anymore — most often a typo when
+  // the id was copied into the Google Sheet, or the file got deleted/moved
+  // to the trash after the sheet was already set up.
+  if (/not found|no longer available|may have been removed|doesn['’]t exist|does not exist/i.test(html)) {
+    return (
+      "Google says this file doesn't exist anymore — the file ID in the Google Sheet may " +
+      "have a typo, or the video may have been deleted (including moved to the trash). " +
+      "Ask your director to re-copy the file's link from Google Drive and update the sheet."
+    );
+  }
+
+  // A file that exists, and isn't behind a sign-in wall, can still show this
+  // for a viewer who isn't on its share list — Google's "Restricted" setting.
+  if (/request access|you (need|['’]ll need) (access|permission)/i.test(html)) {
+    return (
+      'Google says whoever opens this link would need to "request access" — this file is ' +
+      'set to "Restricted" instead of "Anyone with the link." Ask your director to open it ' +
+      'in Google Drive, click Share, and change it to "Anyone with the link."'
+    );
+  }
+
+  return null;
+}
+
 // (Exported alongside the handler purely so this logic can be exercised by an
 // automated test without hitting real Google Drive — Netlify only ever looks
 // for the default export, so this has no effect on how the function runs.)
-export { resolveNextUrlFromHtml, collectCookies };
+export { resolveNextUrlFromHtml, collectCookies, classifyUnresolvedPage };
 
 // A real <video> element loading a file whose picture-locating metadata
 // sits at the END of the file (common for files not specifically
@@ -187,14 +232,21 @@ async function resolveAndStream(startUrl, startCookieHeader, rangeHeader) {
     const nextUrl = resolveNextUrlFromHtml(html);
 
     if (!nextUrl) {
-      return {
-        found: false,
-        response: new Response(
+      const specific = classifyUnresolvedPage(html, response.url);
+      let message = specific;
+      if (!message) {
+        // Nothing we recognize — fall back to the generic message, but tack
+        // on whatever Google titled this page (if anything), since that's
+        // often enough on its own to tell a person what went wrong even when
+        // our code doesn't recognize the shape.
+        const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+        const title = titleMatch ? titleMatch[1].replace(/\s+/g, " ").trim() : null;
+        message =
           "Couldn't find a download link on Google Drive's page for this file. " +
-            'Ask your director to check it\'s still shared as "Anyone with the link."',
-          { status: 502 }
-        ),
-      };
+          'Ask your director to check it\'s still shared as "Anyone with the link."' +
+          (title ? ` (Google's page was titled "${title}".)` : "");
+      }
+      return { found: false, response: new Response(message, { status: 502 }) };
     }
 
     url = nextUrl;
@@ -204,6 +256,70 @@ async function resolveAndStream(startUrl, startCookieHeader, rangeHeader) {
     found: false,
     response: new Response("Google Drive kept redirecting without ever reaching the file.", { status: 504 }),
   };
+}
+
+// If a Google API key is available to this function (set it in Netlify under
+// Site configuration → Environment variables, named GOOGLE_API_KEY), skip the
+// whole business of reading Google's warning page and just ask Google's
+// official API for the file. It's one request instead of several, it can't be
+// broken by Google restyling that page, and when something IS wrong it says
+// so in plain JSON we can pass along as a real sentence. Optional — with no
+// key set, everything below works exactly as before.
+async function streamByApi(fileId, apiKey, rangeHeader) {
+  const apiUrl =
+    "https://www.googleapis.com/drive/v3/files/" +
+    encodeURIComponent(fileId) +
+    "?alt=media&key=" + encodeURIComponent(apiKey);
+
+  const response = await fetch(apiUrl, {
+    redirect: "follow",
+    headers: { "User-Agent": USER_AGENT, ...(rangeHeader ? { Range: rangeHeader } : {}) },
+  });
+
+  if (response.ok || response.status === 206) {
+    const headers = new Headers();
+    ["content-type", "content-length", "content-range", "accept-ranges", "cache-control"].forEach((h) => {
+      const v = response.headers.get(h);
+      if (v) headers.set(h, v);
+    });
+    return new Response(response.body, { status: response.status, headers });
+  }
+
+  let detail = "";
+  try {
+    const body = await response.json();
+    detail = (body && body.error && body.error.message) || "";
+  } catch (e) {}
+
+  if (response.status === 404) {
+    return new Response(
+      "Google says this file doesn't exist. The file ID in the Google Sheet may be wrong, or the " +
+        "video was deleted or moved to the trash. " + detail,
+      { status: 502 }
+    );
+  }
+  if (response.status === 403) {
+    return new Response(
+      'Google refused this file. Usually that means it is not shared as "Anyone with the link," or ' +
+        "the API key is restricted. " + detail,
+      { status: 502 }
+    );
+  }
+  return new Response("Google returned an error (" + response.status + "). " + detail, { status: 502 });
+}
+
+function readApiKeyFromEnvironment() {
+  try {
+    if (typeof Netlify !== "undefined" && Netlify.env && typeof Netlify.env.get === "function") {
+      return Netlify.env.get("GOOGLE_API_KEY") || "";
+    }
+  } catch (e) {}
+  try {
+    if (typeof Deno !== "undefined" && Deno.env && typeof Deno.env.get === "function") {
+      return Deno.env.get("GOOGLE_API_KEY") || "";
+    }
+  } catch (e) {}
+  return "";
 }
 
 export default async (req) => {
@@ -221,6 +337,9 @@ export default async (req) => {
   const rangeHeader = req.headers.get("range");
 
   try {
+    const apiKey = readApiKeyFromEnvironment();
+    if (apiKey) return await streamByApi(fileId, apiKey, rangeHeader);
+
     const now = Date.now();
     const cached = resolvedCache.get(fileId);
 
