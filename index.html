@@ -116,7 +116,20 @@
     z-index: 10;
     display:none;
     flex-direction:column;
-    padding: 48px 56px 40px;
+    /* TV OVERSCAN.
+       Televisions crop the outer edge of the picture — typically 3-5% on each
+       side — which is why the tiles look fine on a computer monitor and cut
+       off on the actual TVs. These paddings are a percentage of the screen, so
+       they scale into a real "safe area" on a 55" panel while staying modest
+       in a laptop window. Raise --tv-safe if any TV still clips. */
+    /* Vertical is given more room than horizontal on purpose: the title sits
+       right at the top edge, and a 5% crop on a 1080p panel eats 54px — which
+       is exactly where the heading started before. */
+    --tv-safe-x: 5;
+    --tv-safe-y: 7;
+    padding: max(56px, calc(var(--tv-safe-y) * 1vh))
+             max(56px, calc(var(--tv-safe-x) * 1vw))
+             max(44px, calc(var(--tv-safe-y) * 1vh));
   }
   #menu.open{ display:flex; }
 
@@ -321,7 +334,13 @@
   #playerBackBtn{
     transition: opacity .45s ease, transform .2s ease, background .15s ease, color .15s ease, border-color .15s ease;
   }
-  #player.chrome-hidden #playerBackBtn{ opacity:0; pointer-events:none; }
+  /* The back arrow is NOT drawn over a playing video at all — the remote's
+     own BACK button is how you leave, and a permanent arrow on a classroom
+     wall is just clutter. It reappears only while the video is PAUSED, which
+     keeps a guaranteed way out on screen for anyone whose remote's BACK isn't
+     forwarded to the page, without ever showing during a lesson. */
+  #player #playerBackBtn{ opacity:0; pointer-events:none; }
+  #player.is-paused #playerBackBtn{ opacity:1; pointer-events:auto; }
 
   /* One quiet line, shown only for the first few seconds, so a teacher who
      has never used this learns the two buttons that matter without a manual. */
@@ -344,12 +363,17 @@
     display:flex; align-items:center; justify-content:center;
     opacity:0; transition: opacity .25s ease;
   }
+  /* Light badge, dark bars. A dark badge vanished against the black letterbox
+     bars and against dark video; a bright one with a dark ring reads clearly
+     over anything — black bars, a dark scene, or a white title slide. */
   #pauseBadge .bars{
-    width:120px; height:120px; border-radius:50%;
-    background: rgba(0,0,0,0.55); border:3px solid rgba(255,255,255,0.65);
-    display:flex; align-items:center; justify-content:center; gap:14px;
+    width:132px; height:132px; border-radius:50%;
+    background: rgba(255,255,255,0.94);
+    border:4px solid rgba(0,0,0,0.55);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.5), 0 12px 40px rgba(0,0,0,0.7);
+    display:flex; align-items:center; justify-content:center; gap:16px;
   }
-  #pauseBadge .bars i{ display:block; width:20px; height:54px; border-radius:5px; background:#fff; }
+  #pauseBadge .bars i{ display:block; width:22px; height:58px; border-radius:6px; background:#12161f; }
   #player.is-paused #pauseBadge{ opacity:1; }
 
   .player-error{
@@ -566,6 +590,12 @@ document.title = CONFIG.CHURCH_NAME + (roomLabel ? ' — ' + roomLabel : '') + '
 let buttons = [];          // parsed sheet rows for the current room (videos only, each may carry a .group)
 let visibleItems = [];     // what's actually on screen right now: a mix of folder buttons and video buttons
 let activeGroup = null;    // null = showing the root menu; a string = inside that week/folder's sub-list
+// WHICH ROOM'S copy of that folder we are inside.
+// Drive has "In Season Week 1" under BOTH Elementary and Preschool. Folders
+// used to be keyed by name alone, so those two collapsed into a single tile
+// holding both rooms' files. A folder is only the same folder if the name AND
+// the room match.
+let activeGroupRoom = null;
 let focusedIndex = 0;      // roving focus index within buttonGrid
 let idleTimer = null;
 let currentView = 'screensaver'; // 'screensaver' | 'menu' | 'player'
@@ -757,7 +787,7 @@ async function loadConfigFromSheet(){
     // If the folder/week the teacher currently has open got renamed or
     // removed in this sync, don't strand them on a dead sub-list — fall
     // back to the main menu next render.
-    if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
+    if (activeGroup && !buttons.some(b => b.group === activeGroup && (b.room || '') === (activeGroupRoom || ''))) { activeGroup = null; activeGroupRoom = null; }
     try { localStorage.setItem('ktv_last_good_config', JSON.stringify(buttons)); } catch(e) {}
     loadThumbnailsUpFront(buttons);
     renderButtons();
@@ -772,7 +802,7 @@ async function loadConfigFromSheet(){
         const cached = JSON.parse(localStorage.getItem('ktv_last_good_config') || 'null');
         if (cached && cached.length) {
           buttons = cached;
-          if (activeGroup && !buttons.some(b => b.group === activeGroup)) activeGroup = null;
+          if (activeGroup && !buttons.some(b => b.group === activeGroup && (b.room || '') === (activeGroupRoom || ''))) { activeGroup = null; activeGroupRoom = null; }
           loadThumbnailsUpFront(buttons);
           renderButtons();
           updateMenuTitle();
@@ -816,15 +846,24 @@ function mediaKind(b){
 
 function computeVisibleItems(){
   if (activeGroup) {
-    return buttons.filter(b => b.group === activeGroup).map(b => ({ kind: mediaKind(b), data: b }));
+    const inGroup = buttons
+      .filter(b => b.group === activeGroup && (b.room || '') === (activeGroupRoom || ''))
+      .map(b => ({ kind: mediaKind(b), data: b }));
+    // First tile inside every folder is a one-press way back to the logo loop,
+    // so a teacher never has to climb back out through the menus to reset the
+    // screen between services.
+    return [{ kind: 'screensaver' }].concat(inGroup);
   }
   const videoEntries = buttons.filter(b => !b.group).map(b => ({ kind: mediaKind(b), data: b }));
   const seen = new Set();
-  const folderNames = [];
+  const folderEntries = [];
   buttons.forEach(b => {
-    if (b.group && !seen.has(b.group)) { seen.add(b.group); folderNames.push(b.group); }
+    if (!b.group) return;
+    const key = (b.room || '') + '\u0000' + b.group;   // room + name, so identical names stay separate
+    if (seen.has(key)) return;
+    seen.add(key);
+    folderEntries.push({ kind: 'folder', name: b.group, room: b.room || '' });
   });
-  const folderEntries = folderNames.map(name => ({ kind: 'folder', name: name }));
   return videoEntries.concat(folderEntries);
 }
 
@@ -845,10 +884,20 @@ function renderButtons(){
   items.forEach((item, i) => {
     const btn = document.createElement('button');
     btn.dataset.index = i;
-    if (item.kind === 'folder') {
+    if (item.kind === 'screensaver') {
+      btn.className = 'btn btn-folder btn-screensaver';
+      btn.style.setProperty('--btn-color', CONFIG.FOLDER_COLOR);
+      btn.innerHTML = '<div class="icon">🏠</div><div class="label">Back to Screensaver</div>';
+    } else if (item.kind === 'folder') {
       btn.className = 'btn btn-folder';
       btn.style.setProperty('--btn-color', CONFIG.FOLDER_COLOR);
-      btn.innerHTML = '<div class="icon">' + escapeHtml(CONFIG.FOLDER_ICON) + '</div><div class="label">' + escapeHtml(item.name) + '</div>';
+      // When a TV has NOT been told which room it is (no ?room= on its web
+      // address), both rooms' folders are on screen at once — and Drive uses
+      // the same week names in both. Showing the room here is what keeps
+      // "In Season Week 1" for Elementary distinguishable from Preschool's.
+      const prettyRoom = item.room ? (item.room.charAt(0).toUpperCase() + item.room.slice(1)) : '';
+      const folderLabel = (!ROOM && prettyRoom) ? (prettyRoom + ' · ' + item.name) : item.name;
+      btn.innerHTML = '<div class="icon">' + escapeHtml(CONFIG.FOLDER_ICON) + '</div><div class="label">' + escapeHtml(folderLabel) + '</div>';
     } else {
       const b = item.data;
       btn.className = 'btn btn-video';
@@ -866,13 +915,15 @@ function renderButtons(){
 function activateItem(i){
   const item = visibleItems[i];
   if (!item) return;
-  if (item.kind === 'folder') { enterGroup(item.name); }
+  if (item.kind === 'screensaver') { showScreensaver(); }
+  else if (item.kind === 'folder') { enterGroup(item.name, item.room); }
   else if (item.kind === 'image') { showImage(item.data); }
   else { playVideo(item.data); }
 }
 
-function enterGroup(name){
+function enterGroup(name, room){
   activeGroup = name;
+  activeGroupRoom = room || '';
   renderButtons();
   updateMenuTitle();
   updateBackButtonLabel();
@@ -880,6 +931,7 @@ function enterGroup(name){
 
 function backToRootMenu(){
   activeGroup = null;
+  activeGroupRoom = null;
   renderButtons();
   updateMenuTitle();
   updateBackButtonLabel();
@@ -1029,7 +1081,7 @@ function showScreensaver(){
   currentView = 'screensaver';
   playerEl.classList.remove('is-paused', 'chrome-hidden');
   clearTimeout(chromeTimer);
-  activeGroup = null; // always wake up back at the main menu, not wherever a teacher left off
+  activeGroup = null; activeGroupRoom = null; // always wake up back at the main menu, not wherever a teacher left off
   menuEl.classList.remove('open');
   playerEl.classList.remove('open');
   playerFrameWrap.innerHTML = ''; // stop any playing video
