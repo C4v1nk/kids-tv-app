@@ -339,7 +339,15 @@
   }
   .btn-video.has-thumb .label{
     position:relative; z-index:1;
-    text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 3px 10px rgba(0,0,0,.55);
+    /* ALWAYS light, whatever the theme says.
+       The gradient beneath this text is dark in every theme (it has to be —
+       it exists to darken whatever photo is behind it). The themes with light
+       backgrounds set --text to a near-black, and inheriting that put dark
+       text on a dark scrim: measured contrast of 1.2:1 against a 4.5:1
+       standard, i.e. essentially unreadable. The tile background may follow
+       the theme; a label sitting on a photo may not. */
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 3px 12px rgba(0,0,0,.7);
   }
 
   #emptyState{
@@ -566,7 +574,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-04a";
+const KTV_BUILD = "2026-09-04b";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
