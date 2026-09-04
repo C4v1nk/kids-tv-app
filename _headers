@@ -1,0 +1,9 @@
+# Tells Cloudflare how long browsers may reuse each file.
+#
+# The dashboard page itself must never be reused from cache without checking
+# first: when index.html changes, ten wall-mounted TVs need to pick it up
+# without anyone visiting them. Everything else can be cached normally.
+/
+  Cache-Control: no-cache, must-revalidate
+/index.html
+  Cache-Control: no-cache, must-revalidate
