@@ -563,6 +563,11 @@
    CONFIG — EDIT ME
    This is the only section you should need to change.
    ===================================================================== */
+// Bump this whenever the file changes. It is the ONLY thing the update check
+// below compares, so it must be different from the version currently on the
+// TVs for them to notice a new release.
+const KTV_BUILD = "2026-09-04a";
+
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
   // See the setup guide for exactly how to get this.
@@ -1903,6 +1908,45 @@ function parkSpareHistoryEntry(){
     // button and the keys below still cover everything.
   }
 })();
+
+/* ==================== TVs THAT UPDATE THEMSELVES ====================
+   Ten televisions on brackets in ten classrooms. Nobody should have to visit
+   each one with a remote to clear a cache after every change — and kiosk
+   browsers hold on to a cached page hard enough that server cache headers
+   can't be relied on to dislodge it.
+
+   So the page checks for itself. Every so often it re-downloads its own
+   address with caching explicitly bypassed, looks for the build stamp near
+   the top of the file, and if it differs from the copy that is running, it
+   reloads.
+
+   IT ONLY EVER RELOADS AT THE SCREENSAVER. A lesson is never interrupted:
+   if a teacher is mid-video the update just waits for the next quiet moment.
+   =================================================================== */
+const UPDATE_CHECK_MINUTES = 20;
+
+async function checkForNewVersion(){
+  try {
+    // The random parameter and no-store together are what get us past both
+    // the browser cache and any cache in between.
+    const response = await fetch(location.pathname + '?ktvcheck=' + Date.now(), { cache: 'no-store' });
+    if (!response.ok) return;
+    const text = await response.text();
+    const match = text.match(/KTV_BUILD\s*=\s*"([^"]+)"/);
+    if (!match) return;                       // couldn't find the stamp: leave well alone
+    if (match[1] === KTV_BUILD) return;       // already up to date
+    if (currentView !== 'screensaver') return; // mid-lesson — try again next time
+    console.log('[KidsTV] new version ' + match[1] + ' available, reloading');
+    location.reload();
+  } catch (e) {
+    // Offline or the check failed — completely harmless, we just try later.
+  }
+}
+
+setInterval(checkForNewVersion, UPDATE_CHECK_MINUTES * 60 * 1000);
+// Also look shortly after start-up, so a TV switched on after a change picks
+// it up straight away rather than up to twenty minutes later.
+setTimeout(checkForNewVersion, 45 * 1000);
 
 /* ==================== LOOK-AND-FEEL THEMES ====================
    Five complete colour schemes live in the stylesheet at the top of this file.
