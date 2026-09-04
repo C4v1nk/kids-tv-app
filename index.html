@@ -70,6 +70,56 @@
     --focus-ring: 0 0 0 6px rgba(70,209,127,0.32), 0 0 0 3px var(--accent);
     --radius: 26px;
   }
+  /* ---- Themes with actual decoration, not just a colour swap ----
+     The patterns are drawn as inline SVG right here in the stylesheet, so
+     there are no image files to host, nothing extra to download, and they
+     stay razor sharp on a 55" screen. They sit on the menu background only —
+     never behind a video or a picture, where they would be a distraction. */
+  :root[data-theme="confetti"]{
+    --bg: #fdf3ff; --bg-panel: #ffffff; --bg-panel-2: #f6e9ff;
+    --accent: #e0409a; --accent-ink: #40001f;
+    --text: #2c1338; --muted: #7a5a8c; --border: #ecd2f7; --danger: #e0403f;
+    --focus-ring: 0 0 0 7px rgba(224,64,154,0.28), 0 0 0 4px var(--accent);
+    --radius: 34px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M20 60q18-22 36 0t36 0' stroke='%23ffb3d9'/%3E%3Cpath d='M200 30q18-22 36 0t36 0' stroke='%23b9e4ff'/%3E%3Cpath d='M60 250q18-22 36 0t36 0' stroke='%23ffe08a'/%3E%3Cpath d='M225 205q18-22 36 0t36 0' stroke='%23b6f0c8'/%3E%3C/g%3E%3Cg fill='none' stroke-width='8' stroke-linecap='round'%3E%3Cpath d='M150 120l0 34M133 137l34 0' stroke='%23ffc7e6'/%3E%3Cpath d='M40 160l0 26M27 173l26 0' stroke='%23cfe8ff'/%3E%3C/g%3E%3Cg%3E%3Ccircle cx='265' cy='120' r='9' fill='%23ffd9ec'/%3E%3Ccircle cx='105' cy='40' r='7' fill='%23cdefff'/%3E%3Ccircle cx='180' cy='268' r='8' fill='%23ffeeb0'/%3E%3Ccircle cx='292' cy='262' r='6' fill='%23d6f5df'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  :root[data-theme="deepsea"]{
+    --bg: #04263f; --bg-panel: #0a3b5c; --bg-panel-2: #0f4b6e;
+    --accent: #3fd0d8; --accent-ink: #01262a;
+    --text: #eaffff; --muted: #86bdd2; --border: #14577c; --danger: #ff7a6b;
+    --focus-ring: 0 0 0 7px rgba(63,208,216,0.30), 0 0 0 4px var(--accent);
+    --radius: 30px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cg fill='none' stroke='%231d6a92' stroke-width='6' stroke-linecap='round'%3E%3Cpath d='M0 40q25-26 50 0t50 0 50 0 50 0 50 0 50 0'/%3E%3Cpath d='M0 150q25-26 50 0t50 0 50 0 50 0 50 0 50 0' stroke='%23175b7e'/%3E%3C/g%3E%3Cg fill='none' stroke='%232a86b3' stroke-width='4'%3E%3Ccircle cx='60' cy='100' r='11'/%3E%3Ccircle cx='90' cy='85' r='6'/%3E%3Ccircle cx='225' cy='195' r='13'/%3E%3Ccircle cx='250' cy='178' r='7'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  :root[data-theme="starrynight"]{
+    --bg: #171043; --bg-panel: #241a5e; --bg-panel-2: #2e2175;
+    --accent: #ffd76e; --accent-ink: #2a1c00;
+    --text: #f6f2ff; --muted: #b3a6e0; --border: #3b2d8c; --danger: #ff7b8a;
+    --focus-ring: 0 0 0 7px rgba(255,215,110,0.30), 0 0 0 4px var(--accent);
+    --radius: 32px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cg fill='%23fff3c4' opacity='.85'%3E%3Cpath d='M60 40l6 15 15 6-15 6-6 15-6-15-15-6 15-6z'/%3E%3Cpath d='M215 105l5 12 12 5-12 5-5 12-5-12-12-5 12-5z'/%3E%3Cpath d='M120 215l4 10 10 4-10 4-4 10-4-10-10-4 10-4z'/%3E%3C/g%3E%3Cg fill='%23bda8ff' opacity='.55'%3E%3Ccircle cx='250' cy='45' r='4'/%3E%3Ccircle cx='30' cy='150' r='3'/%3E%3Ccircle cx='165' cy='60' r='3'/%3E%3Ccircle cx='90' cy='120' r='3.5'/%3E%3Ccircle cx='270' cy='200' r='4'/%3E%3Ccircle cx='40' cy='265' r='3'/%3E%3Ccircle cx='200' cy='270' r='3.5'/%3E%3C/g%3E%3Cpath d='M258 145a20 20 0 1 0 14 26 16 16 0 0 1-14-26z' fill='%23ffe9a8' opacity='.75'/%3E%3C/svg%3E");
+  }
+  :root[data-theme="rainbow"]{
+    --bg: #fffaf2; --bg-panel: #ffffff; --bg-panel-2: #fff2e0;
+    --accent: #ff7043; --accent-ink: #3d1200;
+    --text: #33231a; --muted: #8b6a58; --border: #ffe0c2; --danger: #e0403f;
+    --focus-ring: 0 0 0 7px rgba(255,112,67,0.26), 0 0 0 4px var(--accent);
+    --radius: 36px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='240' viewBox='0 0 340 240'%3E%3Cg fill='none' stroke-width='9' stroke-linecap='round'%3E%3Cpath d='M30 120a60 60 0 0 1 120 0' stroke='%23ffb3ba'/%3E%3Cpath d='M48 120a42 42 0 0 1 84 0' stroke='%23ffdfaf'/%3E%3Cpath d='M66 120a24 24 0 0 1 48 0' stroke='%23b5e6c4'/%3E%3Cpath d='M200 210a55 55 0 0 1 110 0' stroke='%23bcdcff'/%3E%3Cpath d='M217 210a38 38 0 0 1 76 0' stroke='%23e3c7ff'/%3E%3C/g%3E%3Cg fill='%23fff0b8'%3E%3Ccircle cx='285' cy='55' r='22'/%3E%3C/g%3E%3Cg fill='none' stroke='%23ffd9a0' stroke-width='6' stroke-linecap='round'%3E%3Cpath d='M285 20v-12M285 102v12M320 55h12M238 55h12M311 29l8-8M251 81l-8 8M311 81l8 8M251 29l-8-8'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  :root[data-theme="garden"]{
+    --bg: #f3fbf0; --bg-panel: #ffffff; --bg-panel-2: #e7f6e2;
+    --accent: #43a047; --accent-ink: #06230a;
+    --text: #1d3320; --muted: #6d8a70; --border: #cfe8ca; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(67,160,71,0.24), 0 0 0 4px var(--accent);
+    --radius: 30px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg%3E%3Cg transform='translate(55 55)'%3E%3Ccircle r='9' fill='%23ffd7e6'/%3E%3Cg fill='%23ffeef4'%3E%3Ccircle cx='0' cy='-17' r='9'/%3E%3Ccircle cx='16' cy='-5' r='9'/%3E%3Ccircle cx='10' cy='14' r='9'/%3E%3Ccircle cx='-10' cy='14' r='9'/%3E%3Ccircle cx='-16' cy='-5' r='9'/%3E%3C/g%3E%3Ccircle r='6' fill='%23ffc44d'/%3E%3C/g%3E%3Cg transform='translate(205 190)'%3E%3Ccircle r='8' fill='%23e6dcff'/%3E%3Cg fill='%23f2ecff'%3E%3Ccircle cx='0' cy='-15' r='8'/%3E%3Ccircle cx='14' cy='-5' r='8'/%3E%3Ccircle cx='9' cy='12' r='8'/%3E%3Ccircle cx='-9' cy='12' r='8'/%3E%3Ccircle cx='-14' cy='-5' r='8'/%3E%3C/g%3E%3Ccircle r='5' fill='%23ffc44d'/%3E%3C/g%3E%3C/g%3E%3Cg fill='none' stroke='%23bfe3b6' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M150 60q18-16 34-6M150 60q-6-22 8-34'/%3E%3Cpath d='M40 205q18-16 34-6M40 205q-6-22 8-34'/%3E%3C/g%3E%3Cg fill='%23d3ecca'%3E%3Cellipse cx='245' cy='60' rx='13' ry='7' transform='rotate(-25 245 60)'/%3E%3Cellipse cx='110' cy='245' rx='13' ry='7' transform='rotate(15 110 245)'/%3E%3C/g%3E%3C/svg%3E");
+  }
   :root[data-theme="highcontrast"]{
     --bg: #000000; --bg-panel: #101010; --bg-panel-2: #1a1a1a;
     --accent: #ffd400; --accent-ink: #000000;
@@ -112,7 +162,11 @@
   /* ---------- MENU LAYER ---------- */
   #menu{
     position: fixed; inset:0;
-    background: radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
+    background-color: var(--bg);
+    background-image: var(--menu-pattern, none),
+                      radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
+    background-repeat: repeat, no-repeat;
+    background-size: auto, cover;
     z-index: 10;
     display:none;
     flex-direction:column;
@@ -164,7 +218,7 @@
        enormous tiles; the floor keeps a short one usable. Roughly 16:9 at TV
        size, which is what makes a video thumbnail look like a video thumbnail
        instead of a cropped strip. */
-    /* Row height is measured and set by fitGridRows() in the script below,
+    /* Row height and column count are measured and set by fitGrid() below,
        from the height this grid REALLY has on the screen it is running on.
        The clamp here is only the value used for the split second before that
        runs, and a fallback if the script ever fails. Guessing the height from
@@ -194,7 +248,12 @@
     border: 3px solid var(--border);
     border-radius: var(--radius);
     padding: 34px 26px;
-    min-height: 190px;
+    /* NO min-height. This used to be 190px, and it is what kept the tiles
+       cut off at the bottom of the TVs: the grid works out exactly how tall
+       each row may be to fit the screen, and a min-height on the button
+       silently overrode that and pushed the last row off the edge. The row
+       height computed in fitGrid() is the single source of truth now. */
+    min-height: 0;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap: 14px;
     color: var(--text);
@@ -887,40 +946,78 @@ function computeVisibleItems(){
    small, the row height stops at a sensible minimum and the grid scrolls
    instead (arrow keys still move focus through it normally).
    ================================================================ */
-const ROW_MIN_PX = 150;   // never shrink a tile below this — it must stay readable across a room
+/* ============ MAKE THE TILES FIT THE SCREEN THEY ARE ON ============
+   The layout used to guess a row height from `vh` units. That guess was fine
+   in a desktop window and wrong on the TVs, where the bottom row hung off the
+   edge and got sliced in half.
 
-function fitGridRows(){
+   This works it out from the space that genuinely exists, and it is allowed to
+   change the number of columns to do it: eleven week-folders as 3 columns is
+   four rows of squashed tiles, but as 4 columns it is three comfortable ones.
+
+   Then — because a computed answer can still be defeated by some other rule in
+   the stylesheet, which is exactly what happened before — it MEASURES the
+   result and shrinks the rows until nothing overflows. That last loop is the
+   guarantee: whatever else is going on, the bottom row cannot be cut off
+   unless the tiles have already been shrunk to the smallest readable size.
+   ================================================================ */
+const TILE_MIN_H = 120;   // below this a tile is unreadable across a classroom
+const TILE_MIN_W = 210;
+const MAX_COLS   = 6;
+
+let currentCols = 3;      // what the layout chose; arrow-key navigation follows it
+
+function fitGrid(){
   const count = visibleItems.length;
   if (!count) return;
-  const cols = Math.max(1, CONFIG.GRID_COLUMNS);
-  const rows = Math.ceil(count / cols);
-  const styles = getComputedStyle(buttonGrid);
-  const rowGap = parseFloat(styles.rowGap) || 0;
-  const colGap = parseFloat(styles.columnGap) || rowGap;
-  // clientHeight/Width include the grid's own padding, so take that back off
-  // before dividing the space up.
-  const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
-  const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
-  const available = buttonGrid.clientHeight - padY;
-  if (available <= 0) return;                  // not laid out yet — leave the CSS fallback in place
+  const s = getComputedStyle(buttonGrid);
+  const rowGap = parseFloat(s.rowGap) || 0;
+  const colGap = parseFloat(s.columnGap) || rowGap;
+  const padY = (parseFloat(s.paddingTop) || 0) + (parseFloat(s.paddingBottom) || 0);
+  const padX = (parseFloat(s.paddingLeft) || 0) + (parseFloat(s.paddingRight) || 0);
+  const availH = buttonGrid.clientHeight - padY;
+  const availW = buttonGrid.clientWidth - padX;
+  if (availH <= 0 || availW <= 0) return;      // not laid out yet
 
-  // Fill the height that is actually there. Tiles get BIGGER, not smaller —
-  // two rows on a TV now reach the bottom of the screen instead of stopping
-  // short and leaving a band of empty space.
-  const ideal = Math.floor((available - rowGap * (rows - 1)) / rows);
+  const startCols = Math.max(1, CONFIG.GRID_COLUMNS);
+  let chosen = null;
 
-  // The only ceiling: a tile should never end up taller than it is wide, or a
-  // single short row turns into three enormous letterboxes.
-  const tileWidth = (buttonGrid.clientWidth - padX - colGap * (cols - 1)) / cols;
-  const ceiling = Math.round(tileWidth * 0.8);
+  // Try the preferred column count first, then wider arrangements. The first
+  // one whose tiles are still a decent size wins, which keeps them as large
+  // as possible while fitting everything on one screen.
+  for (let cols = startCols; cols <= Math.max(startCols, MAX_COLS); cols++) {
+    const rows = Math.ceil(count / cols);
+    const tileW = (availW - colGap * (cols - 1)) / cols;
+    if (tileW < TILE_MIN_W && cols > startCols) break;   // any wider and they get too narrow
+    let rowH = Math.floor((availH - rowGap * (rows - 1)) / rows);
+    rowH = Math.min(rowH, Math.round(tileW * 0.75));     // never taller than it is wide
+    if (rowH >= TILE_MIN_H) { chosen = { cols: cols, rowH: rowH }; break; }
+  }
 
-  const rowHeight = Math.max(ROW_MIN_PX, Math.min(ceiling, ideal));
-  buttonGrid.style.setProperty('--row-h', rowHeight + 'px');
+  // Nothing fits comfortably (a very long list): use the widest sensible
+  // layout at the smallest readable size and let it scroll.
+  if (!chosen) {
+    const cols = Math.min(MAX_COLS, Math.max(startCols, Math.floor((availW + colGap) / (TILE_MIN_W + colGap))));
+    chosen = { cols: Math.max(1, cols), rowH: TILE_MIN_H };
+  }
+
+  currentCols = chosen.cols;
+  buttonGrid.style.setProperty('--cols', currentCols);
+  buttonGrid.style.setProperty('--row-h', chosen.rowH + 'px');
+
+  // THE GUARANTEE. Measure what actually happened and keep shrinking until it
+  // fits, so no other rule in the stylesheet can push a row off the screen.
+  let h = chosen.rowH;
+  let guard = 0;
+  while (buttonGrid.scrollHeight > buttonGrid.clientHeight + 1 && h > TILE_MIN_H && guard++ < 40) {
+    h -= 6;
+    buttonGrid.style.setProperty('--row-h', h + 'px');
+  }
 }
 
-// A TV can report its size late (and Fully Kiosk can change it when it goes
-// full-screen), so re-measure whenever the window changes.
-window.addEventListener('resize', () => { try { fitGridRows(); } catch (e) {} });
+// A TV can report its size late, and Fully Kiosk changes it when it goes
+// full-screen, so re-measure whenever the window changes.
+window.addEventListener('resize', () => { try { fitGrid(); } catch (e) {} });
 
 function renderButtons(){
   const items = computeVisibleItems();
@@ -963,8 +1060,8 @@ function renderButtons(){
     btn.addEventListener('click', () => activateItem(i));
     buttonGrid.appendChild(btn);
   });
-  fitGridRows();                                     // size the rows to this screen
-  requestAnimationFrame(fitGridRows);                // and again once layout has settled
+  fitGrid();                                         // size the tiles to this screen
+  requestAnimationFrame(fitGrid);                    // and again once layout has settled
   focusedIndex = 0;
   applyFocusVisual();
 }
@@ -1741,47 +1838,23 @@ function goBackOneLevel(){
   // Already at the screensaver — there's nothing above it to go back to.
 }
 
-/* ---------------- HISTORY THE KIOSK APP CAN'T MISREAD ----------------
-   The remote's BACK key never reaches this page as a key press — the browser
-   engine filters it out before web content sees it. The only way it can reach
-   us is if the kiosk app answers it by telling the page to go back, which
-   arrives here as a `popstate` event. So the page keeps spare history entries
-   parked underneath itself, and each BACK press spends one.
+/* The remote's BACK key never reaches this page as a key press — the browser
+   engine filters it out before web content ever sees it. The only route in is
+   if the kiosk app answers BACK by telling the page to go back, which arrives
+   here as a `popstate` event. So a spare history entry is parked underneath
+   the page at all times; a BACK press spends it, and a fresh one is parked
+   immediately so the next press works too.
 
-   TWO THINGS THIS DOES THAT THE SIMPLER VERSION DIDN'T, both aimed at kiosk
-   apps that decide for themselves whether "going back" is allowed:
-
-   1. EVERY ENTRY GETS ITS OWN ADDRESS (#ktv1, #ktv2, …). Parking several
-      entries at the identical address can look to a host app like there is
-      nowhere to go — some refuse to navigate back "past" their configured
-      start address. Distinct addresses make the history unmistakably real.
-
-   2. A DEEP BUFFER, NOT A SINGLE SPARE. One spare is enough in theory, and it
-      re-arms correctly here (verified). But if a host app ever consumes two at
-      once, or checks whether it can go back before the page has re-armed, a
-      single spare runs out and the press falls through to the app's own menu.
-      A dozen entries makes that impossible in practice, and it is topped back
-      up to a dozen after every press.
-
-   None of this is visible to anyone: the address bar is hidden in kiosk mode,
-   and the page never actually navigates anywhere.
-   ------------------------------------------------------------------ */
-const SPARE_TARGET = 12;
-let spareSerial = 0;
-
+   (An experiment with a deeper buffer and per-entry addresses did not help on
+   the real TVs, so this is back to the simple version that at least handles
+   the first press correctly.) */
 function parkSpareHistoryEntry(){
-  try {
-    // history.state carries the depth so we can tell how many are left.
-    const depth = (history.state && history.state.ktvDepth) || 0;
-    for (let d = depth; d < SPARE_TARGET; d++) {
-      history.pushState({ ktvSpare: true, ktvDepth: d + 1 }, '', '#ktv' + (++spareSerial));
-    }
-  } catch (e) {}
+  try { history.pushState({ ktvSpare: true }, ''); } catch (e) {}
 }
 
 (function initHistoryBackButton(){
   try {
-    history.replaceState({ ktvBase: true, ktvDepth: 0 }, '');
+    history.replaceState({ ktvBase: true }, '');
     parkSpareHistoryEntry();
     window.addEventListener('popstate', () => {
       restartIdleTimerIfActive();
@@ -1803,6 +1876,11 @@ function parkSpareHistoryEntry(){
    ============================================================= */
 const THEMES = [
   { id: 'classic',      name: 'Classic Navy' },
+  { id: 'confetti',     name: 'Confetti'     },   // squiggles, sparkles and dots
+  { id: 'rainbow',      name: 'Rainbow'      },   // rainbows and a smiling sun
+  { id: 'starrynight',  name: 'Starry Night' },   // stars and a crescent moon
+  { id: 'garden',       name: 'Garden'       },   // flowers and leaves
+  { id: 'deepsea',      name: 'Deep Sea'     },   // waves and bubbles
   { id: 'sunshine',     name: 'Sunshine'     },
   { id: 'bubblegum',    name: 'Bubblegum'    },
   { id: 'jungle',       name: 'Jungle'       },
@@ -1954,7 +2032,7 @@ document.addEventListener('keydown', (e) => {
 
   if (currentView === 'menu') {
     if (isBackKey) { handleMenuBack(); e.preventDefault(); return; }
-    const cols = CONFIG.GRID_COLUMNS;
+    const cols = currentCols;
     const count = visibleItems.length; // slots 0..count-1 are tiles, slot `count` is the back button
     switch (e.key) {
       case 'ArrowRight':
