@@ -164,7 +164,13 @@
        enormous tiles; the floor keeps a short one usable. Roughly 16:9 at TV
        size, which is what makes a video thumbnail look like a video thumbnail
        instead of a cropped strip. */
-    grid-auto-rows: minmax(clamp(180px, 23vh, 280px), auto);
+    /* Row height is measured and set by fitGridRows() in the script below,
+       from the height this grid REALLY has on the screen it is running on.
+       The clamp here is only the value used for the split second before that
+       runs, and a fallback if the script ever fails. Guessing the height from
+       vh units is what let a second row hang off the bottom edge of a TV
+       while looking perfect in a desktop browser. */
+    grid-auto-rows: var(--row-h, clamp(160px, 23vh, 280px));
     align-content: start;
     gap: 28px;
     flex: 1;
@@ -334,13 +340,11 @@
   #playerBackBtn{
     transition: opacity .45s ease, transform .2s ease, background .15s ease, color .15s ease, border-color .15s ease;
   }
-  /* The back arrow is NOT drawn over a playing video at all — the remote's
-     own BACK button is how you leave, and a permanent arrow on a classroom
-     wall is just clutter. It reappears only while the video is PAUSED, which
-     keeps a guaranteed way out on screen for anyone whose remote's BACK isn't
-     forwarded to the page, without ever showing during a lesson. */
-  #player #playerBackBtn{ opacity:0; pointer-events:none; }
-  #player.is-paused #playerBackBtn{ opacity:1; pointer-events:auto; }
+  /* No back arrow over the picture, ever. The remote's own BACK button is the
+     way out; an arrow burned into the corner of a classroom wall is clutter.
+     The element stays in the page (so nothing referencing it breaks) but is
+     never rendered. */
+  #player #playerBackBtn{ display:none !important; }
 
   /* One quiet line, shown only for the first few seconds, so a teacher who
      has never used this learns the two buttons that matter without a manual. */
@@ -363,17 +367,19 @@
     display:flex; align-items:center; justify-content:center;
     opacity:0; transition: opacity .25s ease;
   }
-  /* Light badge, dark bars. A dark badge vanished against the black letterbox
-     bars and against dark video; a bright one with a dark ring reads clearly
-     over anything — black bars, a dark scene, or a white title slide. */
+  /* The same shape YouTube uses: a soft dark circle with a plain white glyph,
+     no ring, no outline. It reads over a bright title slide and over black
+     letterbox bars equally well, and it looks like something people have
+     already seen a thousand times rather than something invented here. */
   #pauseBadge .bars{
-    width:132px; height:132px; border-radius:50%;
-    background: rgba(255,255,255,0.94);
-    border:4px solid rgba(0,0,0,0.55);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.5), 0 12px 40px rgba(0,0,0,0.7);
-    display:flex; align-items:center; justify-content:center; gap:16px;
+    width:118px; height:118px; border-radius:50%;
+    background: rgba(0,0,0,0.62);
+    display:flex; align-items:center; justify-content:center; gap:13px;
+    transform: scale(0.86);
+    transition: transform .18s cubic-bezier(.2,.9,.3,1.4);
   }
-  #pauseBadge .bars i{ display:block; width:22px; height:58px; border-radius:6px; background:#12161f; }
+  #player.is-paused #pauseBadge .bars{ transform: scale(1); }
+  #pauseBadge .bars i{ display:block; width:17px; height:50px; border-radius:2px; background:#fff; }
   #player.is-paused #pauseBadge{ opacity:1; }
 
   .player-error{
@@ -867,6 +873,55 @@ function computeVisibleItems(){
   return videoEntries.concat(folderEntries);
 }
 
+/* ============ MAKE THE TILES FIT THE SCREEN THEY ARE ON ============
+   The old layout guessed a row height from `vh` units. That guess was fine in
+   a desktop browser and wrong on the TVs, where the second row of tiles hung
+   off the bottom edge and got cut in half.
+
+   This measures the height the grid genuinely has after layout, divides it by
+   the number of rows actually being shown, and sets the row height to the
+   result — so a folder of six tiles fills the screen exactly, with nothing
+   clipped, on any panel, at any resolution, in any theme.
+
+   If there are so many tiles that fitting them would make each one unusably
+   small, the row height stops at a sensible minimum and the grid scrolls
+   instead (arrow keys still move focus through it normally).
+   ================================================================ */
+const ROW_MIN_PX = 150;   // never shrink a tile below this — it must stay readable across a room
+
+function fitGridRows(){
+  const count = visibleItems.length;
+  if (!count) return;
+  const cols = Math.max(1, CONFIG.GRID_COLUMNS);
+  const rows = Math.ceil(count / cols);
+  const styles = getComputedStyle(buttonGrid);
+  const rowGap = parseFloat(styles.rowGap) || 0;
+  const colGap = parseFloat(styles.columnGap) || rowGap;
+  // clientHeight/Width include the grid's own padding, so take that back off
+  // before dividing the space up.
+  const padY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+  const padX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+  const available = buttonGrid.clientHeight - padY;
+  if (available <= 0) return;                  // not laid out yet — leave the CSS fallback in place
+
+  // Fill the height that is actually there. Tiles get BIGGER, not smaller —
+  // two rows on a TV now reach the bottom of the screen instead of stopping
+  // short and leaving a band of empty space.
+  const ideal = Math.floor((available - rowGap * (rows - 1)) / rows);
+
+  // The only ceiling: a tile should never end up taller than it is wide, or a
+  // single short row turns into three enormous letterboxes.
+  const tileWidth = (buttonGrid.clientWidth - padX - colGap * (cols - 1)) / cols;
+  const ceiling = Math.round(tileWidth * 0.8);
+
+  const rowHeight = Math.max(ROW_MIN_PX, Math.min(ceiling, ideal));
+  buttonGrid.style.setProperty('--row-h', rowHeight + 'px');
+}
+
+// A TV can report its size late (and Fully Kiosk can change it when it goes
+// full-screen), so re-measure whenever the window changes.
+window.addEventListener('resize', () => { try { fitGridRows(); } catch (e) {} });
+
 function renderButtons(){
   const items = computeVisibleItems();
   visibleItems = items;
@@ -908,6 +963,8 @@ function renderButtons(){
     btn.addEventListener('click', () => activateItem(i));
     buttonGrid.appendChild(btn);
   });
+  fitGridRows();                                     // size the rows to this screen
+  requestAnimationFrame(fitGridRows);                // and again once layout has settled
   focusedIndex = 0;
   applyFocusVisual();
 }
