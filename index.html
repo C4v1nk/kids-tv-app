@@ -1741,18 +1741,52 @@ function goBackOneLevel(){
   // Already at the screensaver — there's nothing above it to go back to.
 }
 
+/* ---------------- HISTORY THE KIOSK APP CAN'T MISREAD ----------------
+   The remote's BACK key never reaches this page as a key press — the browser
+   engine filters it out before web content sees it. The only way it can reach
+   us is if the kiosk app answers it by telling the page to go back, which
+   arrives here as a `popstate` event. So the page keeps spare history entries
+   parked underneath itself, and each BACK press spends one.
+
+   TWO THINGS THIS DOES THAT THE SIMPLER VERSION DIDN'T, both aimed at kiosk
+   apps that decide for themselves whether "going back" is allowed:
+
+   1. EVERY ENTRY GETS ITS OWN ADDRESS (#ktv1, #ktv2, …). Parking several
+      entries at the identical address can look to a host app like there is
+      nowhere to go — some refuse to navigate back "past" their configured
+      start address. Distinct addresses make the history unmistakably real.
+
+   2. A DEEP BUFFER, NOT A SINGLE SPARE. One spare is enough in theory, and it
+      re-arms correctly here (verified). But if a host app ever consumes two at
+      once, or checks whether it can go back before the page has re-armed, a
+      single spare runs out and the press falls through to the app's own menu.
+      A dozen entries makes that impossible in practice, and it is topped back
+      up to a dozen after every press.
+
+   None of this is visible to anyone: the address bar is hidden in kiosk mode,
+   and the page never actually navigates anywhere.
+   ------------------------------------------------------------------ */
+const SPARE_TARGET = 12;
+let spareSerial = 0;
+
 function parkSpareHistoryEntry(){
-  try { history.pushState({ ktvSpare: true }, ''); } catch (e) {}
+  try {
+    // history.state carries the depth so we can tell how many are left.
+    const depth = (history.state && history.state.ktvDepth) || 0;
+    for (let d = depth; d < SPARE_TARGET; d++) {
+      history.pushState({ ktvSpare: true, ktvDepth: d + 1 }, '', '#ktv' + (++spareSerial));
+    }
+  } catch (e) {}
 }
 
 (function initHistoryBackButton(){
   try {
-    history.replaceState({ ktvBase: true }, '');
+    history.replaceState({ ktvBase: true, ktvDepth: 0 }, '');
     parkSpareHistoryEntry();
     window.addEventListener('popstate', () => {
       restartIdleTimerIfActive();
       goBackOneLevel();
-      parkSpareHistoryEntry(); // re-arm so the next Back press works too
+      parkSpareHistoryEntry(); // top the buffer back up so the next press works too
     });
   } catch (e) {
     // Very old/odd browsers without the history API: the on-screen back
