@@ -29,7 +29,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  :root{
+  /* ---------- THEMES ----------
+     Every colour on the screen comes from the handful of variables below, so a
+     whole new look is just a different set of values — nothing else in the page
+     changes. The theme is switched by pressing LEFT twice on the screensaver
+     (deliberately obscure, so a teacher can't wander into it) and is remembered
+     on that TV afterwards. Each TV keeps its own choice.
+     ---------------------------------------------------------------- */
+  :root, :root[data-theme="classic"]{
     --bg: #0b1120;
     --bg-panel: #141d33;
     --bg-panel-2: #1b2740;
@@ -41,6 +48,34 @@
     --danger: #ef4b5f;
     --focus-ring: 0 0 0 6px rgba(246,173,55,0.35), 0 0 0 3px var(--accent);
     --radius: 28px;
+  }
+  :root[data-theme="sunshine"]{
+    --bg: #fff8ec; --bg-panel: #ffffff; --bg-panel-2: #fff1d6;
+    --accent: #ff8a3d; --accent-ink: #4a1e00;
+    --text: #2b1c0a; --muted: #8a6b4a; --border: #f3d9b1; --danger: #d93b3b;
+    --focus-ring: 0 0 0 6px rgba(255,138,61,0.30), 0 0 0 3px var(--accent);
+    --radius: 30px;
+  }
+  :root[data-theme="bubblegum"]{
+    --bg: #2a0f3d; --bg-panel: #3d1857; --bg-panel-2: #4d1f6d;
+    --accent: #ff5fa2; --accent-ink: #3d0020;
+    --text: #fff2fb; --muted: #d0a8e6; --border: #632b86; --danger: #ff5252;
+    --focus-ring: 0 0 0 6px rgba(255,95,162,0.35), 0 0 0 3px var(--accent);
+    --radius: 34px;
+  }
+  :root[data-theme="jungle"]{
+    --bg: #08251c; --bg-panel: #0f3a2b; --bg-panel-2: #164a38;
+    --accent: #46d17f; --accent-ink: #03291c;
+    --text: #eafff4; --muted: #8fc7ab; --border: #1d5a44; --danger: #ff6b5b;
+    --focus-ring: 0 0 0 6px rgba(70,209,127,0.32), 0 0 0 3px var(--accent);
+    --radius: 26px;
+  }
+  :root[data-theme="highcontrast"]{
+    --bg: #000000; --bg-panel: #101010; --bg-panel-2: #1a1a1a;
+    --accent: #ffd400; --accent-ink: #000000;
+    --text: #ffffff; --muted: #cccccc; --border: #444444; --danger: #ff4040;
+    --focus-ring: 0 0 0 8px rgba(255,212,0,0.45), 0 0 0 4px var(--accent);
+    --radius: 20px;
   }
 
   *{ box-sizing: border-box; }
@@ -272,6 +307,51 @@
      to fill the TV screen exactly would distort faces and text. Letterboxing
      on black keeps it looking intentional instead of broken. */
   #player img{ display:block; width:100%; height:100%; object-fit:contain; background:#000; }
+  /* ---------- PLAYER CHROME THAT GETS OUT OF THE WAY ----------
+     A back arrow burned into the corner of every video is clutter on a wall
+     that a whole classroom is looking at. So the controls fade out a few
+     seconds after the last button press and come straight back the moment
+     anyone touches the remote — the same way a TV's own on-screen controls
+     behave, which is what teachers already expect. They also stay put
+     whenever the video is paused, because a paused screen with no visible
+     controls just looks broken.
+     Visibility is done with opacity (not `hidden`) so the fade is smooth and
+     the button keeps its place in the layout. `pointer-events:none` while
+     faded stops a stray tap landing on something invisible. */
+  #playerBackBtn{
+    transition: opacity .45s ease, transform .2s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  #player.chrome-hidden #playerBackBtn{ opacity:0; pointer-events:none; }
+
+  /* One quiet line, shown only for the first few seconds, so a teacher who
+     has never used this learns the two buttons that matter without a manual. */
+  #playerHint{
+    position:absolute; left:0; right:0; bottom:34px;
+    text-align:center; z-index:21; pointer-events:none;
+    color: rgba(255,255,255,0.72); font-size:1.05rem; letter-spacing:.3px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+    transition: opacity .45s ease;
+  }
+  #playerHint .k{
+    display:inline-block; padding:2px 10px; margin:0 3px; border-radius:8px;
+    background: rgba(255,255,255,0.16); font-weight:700;
+  }
+  #player.chrome-hidden #playerHint{ opacity:0; }
+
+  /* Shown centre-screen only while a video is actually paused. */
+  #pauseBadge{
+    position:absolute; inset:0; z-index:21; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; transition: opacity .25s ease;
+  }
+  #pauseBadge .bars{
+    width:120px; height:120px; border-radius:50%;
+    background: rgba(0,0,0,0.55); border:3px solid rgba(255,255,255,0.65);
+    display:flex; align-items:center; justify-content:center; gap:14px;
+  }
+  #pauseBadge .bars i{ display:block; width:20px; height:54px; border-radius:5px; background:#fff; }
+  #player.is-paused #pauseBadge{ opacity:1; }
+
   .player-error{
     position:absolute; inset:0; background:#000;
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -306,6 +386,7 @@
     animation: ktv-spin 0.9s linear infinite;
   }
   .player-loading p{ color:var(--muted); font-size:1.2rem; margin:0; }
+  .player-loading .pct{ color:var(--muted); font-size:1rem; margin:0; opacity:.8; font-variant-numeric:tabular-nums; }
   @keyframes ktv-spin{ to{ transform: rotate(360deg); } }
   #backBar{
     position:absolute; top:26px; left:26px; z-index:21;
@@ -362,7 +443,7 @@ const CONFIG = {
   SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJ6toT0PQzJDJKOStGySWb51A3-No6YYsAsqMECnACmxkQRH5yaD-Ak28PqF7Nrhdrm-SnlanGliWT/pub?output=csv",
 
   // Text shown at the top of the button screen and on the fallback screensaver.
-  MENU_TITLE: "Select a Video",
+  MENU_TITLE: "Welcome to First Kids!",
   CHURCH_NAME: "Kids Ministry",
 
   // How many buttons per row on the TV.
@@ -477,7 +558,7 @@ const menuCloseBtn = document.getElementById('menuCloseBtn');
 const playerBackBtn = document.getElementById('playerBackBtn');
 
 const roomLabel = ROOM ? (ROOM.charAt(0).toUpperCase() + ROOM.slice(1)) : '';
-document.getElementById('menuTitle').textContent = roomLabel ? (roomLabel + ' — ' + CONFIG.MENU_TITLE) : CONFIG.MENU_TITLE;
+document.getElementById('menuTitle').textContent = CONFIG.MENU_TITLE;
 document.getElementById('fallbackTitle').textContent = CONFIG.CHURCH_NAME;
 buttonGrid.style.setProperty('--cols', CONFIG.GRID_COLUMNS);
 document.title = CONFIG.CHURCH_NAME + (roomLabel ? ' — ' + roomLabel : '') + ' TV';
@@ -813,7 +894,7 @@ function handleMenuBack(){
 
 function updateMenuTitle(){
   const titleEl = document.getElementById('menuTitle');
-  titleEl.textContent = activeGroup || (roomLabel ? (roomLabel + ' — ' + CONFIG.MENU_TITLE) : CONFIG.MENU_TITLE);
+  titleEl.textContent = activeGroup || CONFIG.MENU_TITLE;
 }
 
 function updateBackButtonLabel(){
@@ -946,6 +1027,8 @@ function unduckScreensaver(){
 /* ---------------------- View transitions ---------------------- */
 function showScreensaver(){
   currentView = 'screensaver';
+  playerEl.classList.remove('is-paused', 'chrome-hidden');
+  clearTimeout(chromeTimer);
   activeGroup = null; // always wake up back at the main menu, not wherever a teacher left off
   menuEl.classList.remove('open');
   playerEl.classList.remove('open');
@@ -958,6 +1041,8 @@ function showScreensaver(){
 
 function showMenu(){
   currentView = 'menu';
+  playerEl.classList.remove('is-paused', 'chrome-hidden');
+  clearTimeout(chromeTimer);
   playerEl.classList.remove('open');
   playerFrameWrap.innerHTML = '';
   clearTimeout(playerLoadTimeout);
@@ -1185,6 +1270,7 @@ function showImage(b){
 
   playerEl.classList.add('open');
   playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
+  showPlayerChrome();
   updatePlayerBackButtonLabel();
   startIdleTimer();
 }
@@ -1194,10 +1280,11 @@ function playVideo(b){
   currentView = 'player';
   menuEl.classList.remove('open');
   playerFrameWrap.innerHTML =
-    '<video id="playerVideo" autoplay playsinline></video>' +
+    '<video id="playerVideo" autoplay playsinline preload="auto"></video>' +
     '<div id="playerLoading" class="player-loading">' +
       '<div class="spinner"></div>' +
       '<p>Loading video…</p>' +
+      '<p class="pct" id="playerLoadingPct"></p>' +
     '</div>' +
     '<div id="playerError" class="player-error" hidden>' +
       '<div class="glyph">⚠️</div>' +
@@ -1394,6 +1481,26 @@ function playVideo(b){
     if (videoEl.readyState < 3) armStallTimer(); else clearPlayTimer();
   }
 
+  // `loadeddata` fires as soon as the very first frame is decodable —
+  // typically many seconds before `canplay`, which waits until Chrome thinks
+  // it has enough buffered to keep going. Showing the frame at `loadeddata`
+  // makes the video appear far sooner; playback continues buffering behind it.
+  videoEl.addEventListener('loadeddata', () => {
+    if (myToken !== playAttemptToken) return;
+    hideLoadingIndicator();
+    videoEl.play().catch(() => {});
+  });
+  // While the spinner is up, say how much has arrived. A number that keeps
+  // climbing is the difference between "this is slow" and "this is broken" —
+  // without it a 40-second load looks identical to a dead screen.
+  videoEl.addEventListener('progress', () => {
+    if (myToken !== playAttemptToken) return;
+    const pct = document.getElementById('playerLoadingPct');
+    if (!pct || !videoEl.duration || !videoEl.buffered.length) return;
+    const secs = videoEl.buffered.end(videoEl.buffered.length - 1);
+    const share = Math.min(100, Math.round((secs / videoEl.duration) * 100));
+    pct.textContent = share > 0 ? (share + '% loaded') : '';
+  });
   videoEl.addEventListener('progress', noteBytesArrived);
   videoEl.addEventListener('loadedmetadata', () => { clearMetadataTimer(); noteBytesArrived(); });
   videoEl.addEventListener('loadeddata', noteBytesArrived);
@@ -1410,6 +1517,15 @@ function playVideo(b){
                  + ' (' + currentSourceName + ')';
     console.error('[KidsTV] video error:', detail, mediaErr);
     tryNextSource(detail);
+  });
+  videoEl.addEventListener('pause', () => {
+    if (myToken !== playAttemptToken) return;
+    playerEl.classList.add('is-paused');
+    showPlayerChrome();
+  });
+  videoEl.addEventListener('play', () => {
+    if (myToken !== playAttemptToken) return;
+    playerEl.classList.remove('is-paused');
   });
   videoEl.addEventListener('playing', () => {
     if (myToken !== playAttemptToken) return;
@@ -1440,6 +1556,7 @@ function playVideo(b){
 
   playerEl.classList.add('open');
   playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
+  showPlayerChrome();
   updatePlayerBackButtonLabel();
   startIdleTimer();
 }
@@ -1534,6 +1651,115 @@ function parkSpareHistoryEntry(){
   }
 })();
 
+/* ==================== LOOK-AND-FEEL THEMES ====================
+   Five complete colour schemes live in the stylesheet at the top of this file.
+   Switching is deliberately hidden so it can't be triggered by accident during
+   a lesson: press LEFT twice, quickly, while the screensaver is showing.
+   The choice is saved per TV, so the Preschool room can look different from
+   the Elementary room if you want.
+   ============================================================= */
+const THEMES = [
+  { id: 'classic',      name: 'Classic Navy' },
+  { id: 'sunshine',     name: 'Sunshine'     },
+  { id: 'bubblegum',    name: 'Bubblegum'    },
+  { id: 'jungle',       name: 'Jungle'       },
+  { id: 'highcontrast', name: 'Big & Bold'   },
+];
+
+function currentThemeId(){
+  try { return localStorage.getItem('ktv_theme') || 'classic'; } catch (e) { return 'classic'; }
+}
+
+function applyTheme(id, announce){
+  const theme = THEMES.find(t => t.id === id) || THEMES[0];
+  document.documentElement.setAttribute('data-theme', theme.id);
+  try { localStorage.setItem('ktv_theme', theme.id); } catch (e) {}
+  if (announce) showThemeToast(theme.name);
+}
+
+// A brief label so whoever is changing the theme can see which one they landed
+// on. Disappears on its own; nothing to dismiss.
+let themeToastTimer = null;
+function showThemeToast(name){
+  let el = document.getElementById('themeToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'themeToast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:8%;transform:translateX(-50%);z-index:60;' +
+      'padding:14px 30px;border-radius:999px;background:rgba(0,0,0,0.78);border:2px solid var(--accent);' +
+      'color:#fff;font-size:1.4rem;font-weight:700;letter-spacing:.4px;pointer-events:none;' +
+      'transition:opacity .3s ease;box-shadow:0 10px 40px rgba(0,0,0,.6)';
+    document.body.appendChild(el);
+  }
+  el.textContent = 'Theme: ' + name;
+  el.style.opacity = '1';
+  clearTimeout(themeToastTimer);
+  themeToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+function cycleTheme(){
+  const i = THEMES.findIndex(t => t.id === currentThemeId());
+  applyTheme(THEMES[(i + 1 + THEMES.length) % THEMES.length].id, true);
+}
+
+applyTheme(currentThemeId(), false); // restore this TV's saved look immediately
+
+// Two LEFT presses within this window on the screensaver = change theme.
+const THEME_GESTURE_MS = 1500;
+let lastLeftPressAt = 0;
+
+/* ==================== PLAYER CHROME (auto-hiding) ====================
+   The back arrow and the one-line hint fade away a few seconds after the last
+   remote press, and reappear instantly on the next one. While a video is
+   paused they stay visible, because a frozen picture with no controls reads
+   as "broken" rather than "paused".
+   ==================================================================== */
+const CHROME_HIDE_MS = 3500;
+let chromeTimer = null;
+
+function ensurePlayerChrome(){
+  if (!document.getElementById('playerHint')) {
+    const hint = document.createElement('div');
+    hint.id = 'playerHint';
+    hint.innerHTML = '<span class="k">OK</span> pause &nbsp;·&nbsp; <span class="k">Back</span> menu';
+    playerEl.appendChild(hint);
+  }
+  if (!document.getElementById('pauseBadge')) {
+    const badge = document.createElement('div');
+    badge.id = 'pauseBadge';
+    badge.innerHTML = '<div class="bars"><i></i><i></i></div>';
+    playerEl.appendChild(badge);
+  }
+}
+
+function showPlayerChrome(){
+  ensurePlayerChrome();
+  playerEl.classList.remove('chrome-hidden');
+  clearTimeout(chromeTimer);
+  chromeTimer = setTimeout(() => {
+    const vid = document.getElementById('playerVideo');
+    if (vid && vid.paused) return;              // stay visible while paused
+    playerEl.classList.add('chrome-hidden');
+  }, CHROME_HIDE_MS);
+}
+
+function hidePlayerChromeNow(){
+  clearTimeout(chromeTimer);
+  playerEl.classList.add('chrome-hidden');
+}
+
+// Only videos can pause. Pictures ignore OK entirely — pressing it should
+// never look like it "did nothing wrong but nothing happened", so the chrome
+// reappears as feedback.
+function togglePlayPause(){
+  const vid = document.getElementById('playerVideo');
+  showPlayerChrome();
+  if (!vid) return false;
+  if (vid.paused) { vid.play().catch(() => {}); playerEl.classList.remove('is-paused'); }
+  else { vid.pause(); playerEl.classList.add('is-paused'); }
+  return true;
+}
+
 document.addEventListener('keydown', (e) => {
   restartIdleTimerIfActive();
 
@@ -1543,13 +1769,25 @@ document.addEventListener('keydown', (e) => {
 
   if (currentView === 'screensaver') {
     if (isBackKey) return; // Back at the screensaver does nothing — already home
-    // Any other key wakes the menu.
+    // LEFT is reserved here as the hidden theme switch: two presses within a
+    // second and a half cycle the colour scheme. A single LEFT does nothing,
+    // which is why it can't be stumbled into — every OTHER key still wakes
+    // the menu exactly as before.
+    if (e.key === 'ArrowLeft') {
+      const now = Date.now();
+      if (now - lastLeftPressAt < THEME_GESTURE_MS) { cycleTheme(); lastLeftPressAt = 0; }
+      else { lastLeftPressAt = now; }
+      e.preventDefault();
+      return;
+    }
+    lastLeftPressAt = 0;
     e.preventDefault();
     showMenu();
     return;
   }
 
   if (currentView === 'player') {
+    showPlayerChrome(); // any remote press brings the controls back for a few seconds
     const vid = document.getElementById('playerVideo');
     // Left/right nudge through the video — handy for replaying a line of a
     // memory verse without starting the whole thing over.
@@ -1559,9 +1797,15 @@ document.addEventListener('keydown', (e) => {
       if (vid.paused) vid.play().catch(()=>{}); else vid.pause();
       e.preventDefault(); return;
     }
-    // Nothing else to focus in the player — any select press or Back-style
-    // key returns to the menu, since Back itself may never arrive here.
-    if (isBackKey || ['Enter',' '].includes(e.key)) { e.preventDefault(); showMenu(); }
+    // OK / Select is the pause button. This is the one key Android TV
+    // guarantees will reach the page (BACK is filtered out by the browser
+    // itself before web content ever sees it), so it carries the action a
+    // teacher needs most while a video is on the wall.
+    if (['Enter',' '].includes(e.key)) { togglePlayPause(); e.preventDefault(); return; }
+    // Back-style keys leave the video. On a TV remote this only arrives if
+    // the kiosk app forwards it (see the popstate handler below) — the
+    // on-screen arrow is the guaranteed path.
+    if (isBackKey) { e.preventDefault(); showMenu(); return; }
     return;
   }
 
