@@ -52,23 +52,26 @@
   :root[data-theme="sunshine"]{
     --bg: #fff8ec; --bg-panel: #ffffff; --bg-panel-2: #fff1d6;
     --accent: #ff8a3d; --accent-ink: #4a1e00;
-    --text: #2b1c0a; --muted: #8a6b4a; --border: #f3d9b1; --danger: #d93b3b;
+    --text: #2b1c0a; --muted: #8a6b4a; --border: #e6bd83; --danger: #d93b3b;
     --focus-ring: 0 0 0 6px rgba(255,138,61,0.30), 0 0 0 3px var(--accent);
     --radius: 30px;
+    --tile-edge: rgba(255,138,61,0.18);
   }
   :root[data-theme="bubblegum"]{
     --bg: #2a0f3d; --bg-panel: #3d1857; --bg-panel-2: #4d1f6d;
     --accent: #ff5fa2; --accent-ink: #3d0020;
-    --text: #fff2fb; --muted: #d0a8e6; --border: #632b86; --danger: #ff5252;
+    --text: #fff2fb; --muted: #d0a8e6; --border: #7d3aa6; --danger: #ff5252;
     --focus-ring: 0 0 0 6px rgba(255,95,162,0.35), 0 0 0 3px var(--accent);
     --radius: 34px;
+    --tile-edge: rgba(255,95,162,0.22);
   }
   :root[data-theme="jungle"]{
     --bg: #08251c; --bg-panel: #0f3a2b; --bg-panel-2: #164a38;
     --accent: #46d17f; --accent-ink: #03291c;
-    --text: #eafff4; --muted: #8fc7ab; --border: #1d5a44; --danger: #ff6b5b;
+    --text: #eafff4; --muted: #8fc7ab; --border: #26765a; --danger: #ff6b5b;
     --focus-ring: 0 0 0 6px rgba(70,209,127,0.32), 0 0 0 3px var(--accent);
     --radius: 26px;
+    --tile-edge: rgba(70,209,127,0.22);
   }
   /* ---- Themes with actual decoration, not just a colour swap ----
      The patterns are drawn as inline SVG right here in the stylesheet, so
@@ -78,47 +81,57 @@
   :root[data-theme="confetti"]{
     --bg: #fdf3ff; --bg-panel: #ffffff; --bg-panel-2: #f6e9ff;
     --accent: #e0409a; --accent-ink: #40001f;
-    --text: #2c1338; --muted: #7a5a8c; --border: #ecd2f7; --danger: #e0403f;
+    --text: #2c1338; --muted: #7a5a8c; --border: #dcaeee; --danger: #e0403f;
     --focus-ring: 0 0 0 7px rgba(224,64,154,0.28), 0 0 0 4px var(--accent);
     --radius: 34px;
     --menu-pattern:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M20 60q18-22 36 0t36 0' stroke='%23ffb3d9'/%3E%3Cpath d='M200 30q18-22 36 0t36 0' stroke='%23b9e4ff'/%3E%3Cpath d='M60 250q18-22 36 0t36 0' stroke='%23ffe08a'/%3E%3Cpath d='M225 205q18-22 36 0t36 0' stroke='%23b6f0c8'/%3E%3C/g%3E%3Cg fill='none' stroke-width='8' stroke-linecap='round'%3E%3Cpath d='M150 120l0 34M133 137l34 0' stroke='%23ffc7e6'/%3E%3Cpath d='M40 160l0 26M27 173l26 0' stroke='%23cfe8ff'/%3E%3C/g%3E%3Cg%3E%3Ccircle cx='265' cy='120' r='9' fill='%23ffd9ec'/%3E%3Ccircle cx='105' cy='40' r='7' fill='%23cdefff'/%3E%3Ccircle cx='180' cy='268' r='8' fill='%23ffeeb0'/%3E%3Ccircle cx='292' cy='262' r='6' fill='%23d6f5df'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(253,243,255,0.62);
+    --tile-edge: rgba(224,64,154,0.18);
   }
   :root[data-theme="deepsea"]{
     --bg: #04263f; --bg-panel: #0a3b5c; --bg-panel-2: #0f4b6e;
     --accent: #3fd0d8; --accent-ink: #01262a;
-    --text: #eaffff; --muted: #86bdd2; --border: #14577c; --danger: #ff7a6b;
+    --text: #eaffff; --muted: #86bdd2; --border: #1d6f9c; --danger: #ff7a6b;
     --focus-ring: 0 0 0 7px rgba(63,208,216,0.30), 0 0 0 4px var(--accent);
     --radius: 30px;
     --menu-pattern:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cg fill='none' stroke='%231d6a92' stroke-width='6' stroke-linecap='round'%3E%3Cpath d='M0 40q25-26 50 0t50 0 50 0 50 0 50 0 50 0'/%3E%3Cpath d='M0 150q25-26 50 0t50 0 50 0 50 0 50 0 50 0' stroke='%23175b7e'/%3E%3C/g%3E%3Cg fill='none' stroke='%232a86b3' stroke-width='4'%3E%3Ccircle cx='60' cy='100' r='11'/%3E%3Ccircle cx='90' cy='85' r='6'/%3E%3Ccircle cx='225' cy='195' r='13'/%3E%3Ccircle cx='250' cy='178' r='7'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(4,38,63,0.55);
+    --tile-edge: rgba(63,208,216,0.22);
   }
   :root[data-theme="starrynight"]{
     --bg: #171043; --bg-panel: #241a5e; --bg-panel-2: #2e2175;
     --accent: #ffd76e; --accent-ink: #2a1c00;
-    --text: #f6f2ff; --muted: #b3a6e0; --border: #3b2d8c; --danger: #ff7b8a;
+    --text: #f6f2ff; --muted: #b3a6e0; --border: #4a3aa8; --danger: #ff7b8a;
     --focus-ring: 0 0 0 7px rgba(255,215,110,0.30), 0 0 0 4px var(--accent);
     --radius: 32px;
     --menu-pattern:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cg fill='%23fff3c4' opacity='.85'%3E%3Cpath d='M60 40l6 15 15 6-15 6-6 15-6-15-15-6 15-6z'/%3E%3Cpath d='M215 105l5 12 12 5-12 5-5 12-5-12-12-5 12-5z'/%3E%3Cpath d='M120 215l4 10 10 4-10 4-4 10-4-10-10-4 10-4z'/%3E%3C/g%3E%3Cg fill='%23bda8ff' opacity='.55'%3E%3Ccircle cx='250' cy='45' r='4'/%3E%3Ccircle cx='30' cy='150' r='3'/%3E%3Ccircle cx='165' cy='60' r='3'/%3E%3Ccircle cx='90' cy='120' r='3.5'/%3E%3Ccircle cx='270' cy='200' r='4'/%3E%3Ccircle cx='40' cy='265' r='3'/%3E%3Ccircle cx='200' cy='270' r='3.5'/%3E%3C/g%3E%3Cpath d='M258 145a20 20 0 1 0 14 26 16 16 0 0 1-14-26z' fill='%23ffe9a8' opacity='.75'/%3E%3C/svg%3E");
+    --pattern-veil: rgba(23,16,67,0.45);
+    --tile-edge: rgba(255,215,110,0.20);
   }
   :root[data-theme="rainbow"]{
     --bg: #fffaf2; --bg-panel: #ffffff; --bg-panel-2: #fff2e0;
     --accent: #ff7043; --accent-ink: #3d1200;
-    --text: #33231a; --muted: #8b6a58; --border: #ffe0c2; --danger: #e0403f;
+    --text: #33231a; --muted: #8b6a58; --border: #f5bd8e; --danger: #e0403f;
     --focus-ring: 0 0 0 7px rgba(255,112,67,0.26), 0 0 0 4px var(--accent);
     --radius: 36px;
     --menu-pattern:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='240' viewBox='0 0 340 240'%3E%3Cg fill='none' stroke-width='9' stroke-linecap='round'%3E%3Cpath d='M30 120a60 60 0 0 1 120 0' stroke='%23ffb3ba'/%3E%3Cpath d='M48 120a42 42 0 0 1 84 0' stroke='%23ffdfaf'/%3E%3Cpath d='M66 120a24 24 0 0 1 48 0' stroke='%23b5e6c4'/%3E%3Cpath d='M200 210a55 55 0 0 1 110 0' stroke='%23bcdcff'/%3E%3Cpath d='M217 210a38 38 0 0 1 76 0' stroke='%23e3c7ff'/%3E%3C/g%3E%3Cg fill='%23fff0b8'%3E%3Ccircle cx='285' cy='55' r='22'/%3E%3C/g%3E%3Cg fill='none' stroke='%23ffd9a0' stroke-width='6' stroke-linecap='round'%3E%3Cpath d='M285 20v-12M285 102v12M320 55h12M238 55h12M311 29l8-8M251 81l-8 8M311 81l8 8M251 29l-8-8'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(255,250,242,0.68);
+    --tile-edge: rgba(255,112,67,0.20);
   }
   :root[data-theme="garden"]{
     --bg: #f3fbf0; --bg-panel: #ffffff; --bg-panel-2: #e7f6e2;
     --accent: #43a047; --accent-ink: #06230a;
-    --text: #1d3320; --muted: #6d8a70; --border: #cfe8ca; --danger: #e05252;
+    --text: #1d3320; --muted: #6d8a70; --border: #a8d49f; --danger: #e05252;
     --focus-ring: 0 0 0 7px rgba(67,160,71,0.24), 0 0 0 4px var(--accent);
     --radius: 30px;
     --menu-pattern:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg%3E%3Cg transform='translate(55 55)'%3E%3Ccircle r='9' fill='%23ffd7e6'/%3E%3Cg fill='%23ffeef4'%3E%3Ccircle cx='0' cy='-17' r='9'/%3E%3Ccircle cx='16' cy='-5' r='9'/%3E%3Ccircle cx='10' cy='14' r='9'/%3E%3Ccircle cx='-10' cy='14' r='9'/%3E%3Ccircle cx='-16' cy='-5' r='9'/%3E%3C/g%3E%3Ccircle r='6' fill='%23ffc44d'/%3E%3C/g%3E%3Cg transform='translate(205 190)'%3E%3Ccircle r='8' fill='%23e6dcff'/%3E%3Cg fill='%23f2ecff'%3E%3Ccircle cx='0' cy='-15' r='8'/%3E%3Ccircle cx='14' cy='-5' r='8'/%3E%3Ccircle cx='9' cy='12' r='8'/%3E%3Ccircle cx='-9' cy='12' r='8'/%3E%3Ccircle cx='-14' cy='-5' r='8'/%3E%3C/g%3E%3Ccircle r='5' fill='%23ffc44d'/%3E%3C/g%3E%3C/g%3E%3Cg fill='none' stroke='%23bfe3b6' stroke-width='5' stroke-linecap='round'%3E%3Cpath d='M150 60q18-16 34-6M150 60q-6-22 8-34'/%3E%3Cpath d='M40 205q18-16 34-6M40 205q-6-22 8-34'/%3E%3C/g%3E%3Cg fill='%23d3ecca'%3E%3Cellipse cx='245' cy='60' rx='13' ry='7' transform='rotate(-25 245 60)'/%3E%3Cellipse cx='110' cy='245' rx='13' ry='7' transform='rotate(15 110 245)'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(243,251,240,0.64);
+    --tile-edge: rgba(67,160,71,0.20);
   }
   :root[data-theme="highcontrast"]{
     --bg: #000000; --bg-panel: #101010; --bg-panel-2: #1a1a1a;
@@ -163,10 +176,17 @@
   #menu{
     position: fixed; inset:0;
     background-color: var(--bg);
-    background-image: var(--menu-pattern, none),
+    /* Three layers, top to bottom: a translucent wash of the theme's own
+       background colour, then the decorative pattern, then the base gradient.
+       The wash is what stops a busy pattern from competing with the tiles —
+       the decoration reads as texture rather than as clutter, and the titles
+       stay easy to read from across a room. Themes with no pattern set the
+       wash to transparent, so nothing changes for them. */
+    background-image: linear-gradient(var(--pattern-veil, transparent), var(--pattern-veil, transparent)),
+                      var(--menu-pattern, none),
                       radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
-    background-repeat: repeat, no-repeat;
-    background-size: auto, cover;
+    background-repeat: no-repeat, repeat, no-repeat;
+    background-size: cover, auto, cover;
     z-index: 10;
     display:none;
     flex-direction:column;
@@ -179,11 +199,16 @@
     /* Vertical is given more room than horizontal on purpose: the title sits
        right at the top edge, and a 5% crop on a 1080p panel eats 54px — which
        is exactly where the heading started before. */
+    /* The top keeps a real margin — the heading sits there and TVs crop the
+       outer edge. The BOTTOM is deliberately much tighter, because nothing
+       but tiles lives down there and every pixel given back makes the
+       thumbnails bigger. Raise --tv-safe-bottom if any TV clips the last row. */
     --tv-safe-x: 5;
     --tv-safe-y: 7;
+    --tv-safe-bottom: 2;
     padding: max(56px, calc(var(--tv-safe-y) * 1vh))
              max(56px, calc(var(--tv-safe-x) * 1vw))
-             max(44px, calc(var(--tv-safe-y) * 1vh));
+             max(16px, calc(var(--tv-safe-bottom) * 1vh));
   }
   #menu.open{ display:flex; }
 
@@ -247,6 +272,11 @@
     background: linear-gradient(160deg, var(--bg-panel), var(--bg-panel-2));
     border: 3px solid var(--border);
     border-radius: var(--radius);
+    /* Tiles must read as raised objects sitting ON the background, not as
+       patches of it. On the light, patterned themes this outline is the
+       difference between "clear" and "where does the tile end?" */
+    outline: 1px solid var(--tile-edge, transparent);
+    outline-offset: -4px;
     padding: 34px 26px;
     /* NO min-height. This used to be 190px, and it is what kept the tiles
        cut off at the bottom of the TVs: the grid works out exactly how tall
@@ -438,7 +468,14 @@
     transition: transform .18s cubic-bezier(.2,.9,.3,1.4);
   }
   #player.is-paused #pauseBadge .bars{ transform: scale(1); }
-  #pauseBadge .bars i{ display:block; width:17px; height:50px; border-radius:2px; background:#fff; }
+  /* Pure white, with a faint dark edge so the bars stay white-looking even
+     where the circle sits over a bright part of the picture. The circle
+     itself is unchanged. */
+  #pauseBadge .bars i{
+    display:block; width:18px; height:52px; border-radius:2px;
+    background:#ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+  }
   #player.is-paused #pauseBadge{ opacity:1; }
 
   .player-error{
