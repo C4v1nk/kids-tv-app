@@ -453,22 +453,23 @@
      no ring, no outline. It reads over a bright title slide and over black
      letterbox bars equally well, and it looks like something people have
      already seen a thousand times rather than something invented here. */
+  /* The glyph is ONE drawn shape, not two coloured boxes side by side.
+     On the TVs the old version rendered as a plain black circle — the white
+     bars simply weren't there — while looking perfect in desktop Chrome. That
+     is the kind of difference that comes from an older WebView handling flex
+     spacing or child backgrounds differently, and it is not worth diagnosing
+     remotely when the fix removes the whole class of problem: an SVG with an
+     explicit white fill draws identically on every renderer. */
   #pauseBadge .bars{
-    width:118px; height:118px; border-radius:50%;
-    background: rgba(0,0,0,0.62);
-    display:flex; align-items:center; justify-content:center; gap:13px;
+    width:132px; height:132px; border-radius:50%;
+    background: rgba(0,0,0,0.66);
+    display:flex; align-items:center; justify-content:center;
     transform: scale(0.86);
     transition: transform .18s cubic-bezier(.2,.9,.3,1.4);
   }
   #player.is-paused #pauseBadge .bars{ transform: scale(1); }
-  /* Pure white, with a faint dark edge so the bars stay white-looking even
-     where the circle sits over a bright part of the picture. The circle
-     itself is unchanged. */
-  #pauseBadge .bars i{
-    display:block; width:18px; height:52px; border-radius:2px;
-    background:#ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.45);
-  }
+  #pauseBadge .bars svg{ display:block; width:52%; height:52%; }
+
   #player.is-paused #pauseBadge{ opacity:1; }
 
   .player-error{
@@ -559,7 +560,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-04c";
+const KTV_BUILD = "2026-09-04d";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
@@ -1848,6 +1849,7 @@ function applyFocusVisual(){
   menuCloseBtn.classList.toggle('focused', onBackSlot);
   const el = btns[focusedIndex];
   if (el) el.scrollIntoView({ block: 'nearest' });
+  prefetchFocusedTile();   // start fetching whatever is under the cursor
 }
 
 /* ---------------------- The remote's own Back button ----------------------
@@ -1901,6 +1903,42 @@ function parkSpareHistoryEntry(){
     // button and the keys below still cover everything.
   }
 })();
+
+/* ============ START LOADING BEFORE THE BUTTON IS PRESSED ============
+   Moving the remote's focus onto a tile is a reliable signal that it is about
+   to be opened. Pictures are small (a couple of megabytes) and the browser
+   keeps decoded images ready to draw, so fetching one the moment focus settles
+   makes it appear instantly instead of after a visible pause.
+
+   It waits for focus to SETTLE (three quarters of a second) so that scrolling
+   along a row of tiles doesn't fire off a request for every tile passed over,
+   and it only ever has one in flight.
+
+   Videos are deliberately not prefetched: Google serves them with cache rules
+   that mean a second request would download the file again rather than reuse
+   it, so it would cost bandwidth without making anything faster. The win for
+   videos came from the faststart fix and from showing the first frame as soon
+   as it decodes.
+   =================================================================== */
+const PREFETCH_SETTLE_MS = 750;
+let prefetchTimer = null;
+let prefetchHolder = null;   // kept referenced so the browser doesn't discard it early
+
+function prefetchFocusedTile(){
+  clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(() => {
+    try {
+      const item = visibleItems[focusedIndex];
+      if (!item || item.kind !== 'image' || !item.data || !item.data.fileId) return;
+      const sources = imageSources(item.data.fileId);
+      if (!sources.length) return;
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = sources[0].url;
+      prefetchHolder = img;
+    } catch (e) {}
+  }, PREFETCH_SETTLE_MS);
+}
 
 /* ==================== TVs THAT UPDATE THEMSELVES ====================
    Ten televisions on brackets in ten classrooms. Nobody should have to visit
@@ -2016,7 +2054,13 @@ function ensurePlayerChrome(){
   if (!document.getElementById('pauseBadge')) {
     const badge = document.createElement('div');
     badge.id = 'pauseBadge';
-    badge.innerHTML = '<div class="bars"><i></i><i></i></div>';
+    badge.innerHTML =
+      '<div class="bars">' +
+        '<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<rect x="15" y="10" width="11" height="40" rx="2.5" fill="#ffffff"></rect>' +
+          '<rect x="34" y="10" width="11" height="40" rx="2.5" fill="#ffffff"></rect>' +
+        '</svg>' +
+      '</div>';
     playerEl.appendChild(badge);
   }
 }
