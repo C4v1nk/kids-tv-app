@@ -443,21 +443,6 @@
      never rendered. */
   #player #playerBackBtn{ display:none !important; }
 
-  /* One quiet line, shown only for the first few seconds, so a teacher who
-     has never used this learns the two buttons that matter without a manual. */
-  #playerHint{
-    position:absolute; left:0; right:0; bottom:34px;
-    text-align:center; z-index:21; pointer-events:none;
-    color: rgba(255,255,255,0.72); font-size:1.05rem; letter-spacing:.3px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.85);
-    transition: opacity .45s ease;
-  }
-  #playerHint .k{
-    display:inline-block; padding:2px 10px; margin:0 3px; border-radius:8px;
-    background: rgba(255,255,255,0.16); font-weight:700;
-  }
-  #player.chrome-hidden #playerHint{ opacity:0; }
-
   /* Shown centre-screen only while a video is actually paused. */
   #pauseBadge{
     position:absolute; inset:0; z-index:21; pointer-events:none;
@@ -574,7 +559,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-04b";
+const KTV_BUILD = "2026-09-04c";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
@@ -2028,12 +2013,6 @@ const CHROME_HIDE_MS = 3500;
 let chromeTimer = null;
 
 function ensurePlayerChrome(){
-  if (!document.getElementById('playerHint')) {
-    const hint = document.createElement('div');
-    hint.id = 'playerHint';
-    hint.innerHTML = '<span class="k">OK</span> pause &nbsp;·&nbsp; <span class="k">Back</span> menu';
-    playerEl.appendChild(hint);
-  }
   if (!document.getElementById('pauseBadge')) {
     const badge = document.createElement('div');
     badge.id = 'pauseBadge';
