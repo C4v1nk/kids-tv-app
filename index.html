@@ -560,7 +560,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-04d";
+const KTV_BUILD = "2026-09-06c";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
@@ -602,7 +602,13 @@ const CONFIG = {
   // instead, paste that site's full video address here, e.g.
   // "https://your-screensaver-site.netlify.app/screensaver.mp4" — either
   // way works exactly the same from here on.
-  SCREENSAVER_URL: "https://firstsarasota-kids-tv-screensaver.netlify.app/screensaver.mp4",
+  // Deliberately blank. This used to point at a second, separate Netlify site
+  // that hosted the screensaver file; that account was suspended and the
+  // address is dead. The screensaver now comes from Google Drive via
+  // SCREENSAVER_FILE_ID above. Leaving a dead address here would mean that if
+  // Drive ever hiccuped, the TV would spend its time waiting on a host that
+  // no longer exists instead of failing quickly.
+  SCREENSAVER_URL: "",
 
   // ------------------------------------------------------------------
   // GOOGLE API KEY — the single most important setting on this page.
@@ -861,7 +867,8 @@ async function loadConfigFromSheet(){
     // which week/subfolder a video came from; blank = shows on the main menu),
     // Type (optional — the file's real format, e.g. "video/mp4", written by
     // the sync script; blank on older sheets, which is fine: it's only used
-    // to explain a failure more precisely if one happens).
+    // to explain a failure more precisely if one happens), Size MB (optional
+    // — how patient to be while this file starts).
     const parsedAll = rows.slice(1).map(r => ({
       label: (r[0] || '').trim(),
       fileId: extractDriveId(r[1] || ''),
@@ -869,7 +876,17 @@ async function loadConfigFromSheet(){
       icon: (r[3] || '').trim() || '▶️',
       room: (r[4] || '').trim().toLowerCase(),
       group: (r[5] || '').trim(),
-      type: sanitizeMimeType(r[6])
+      type: sanitizeMimeType(r[6]),
+      // How big the file is, in megabytes, as written by the sync script.
+      // Only used to decide how patient to be while a video is starting: a
+      // 250MB video legitimately needs longer than a 20MB one before we are
+      // willing to call it broken. Blank on older sheets, which is fine —
+      // the code falls back to its floor.
+      sizeMb: Math.max(0, Math.round(parseFloat(r[7]) || 0)),
+      // How many minutes long the video is. This — not the file size — is
+      // what decides how long the TV should wait before it is willing to call
+      // a video broken. Blank on older sheets; the code estimates instead.
+      minutes: Math.max(0, parseFloat(r[8]) || 0)
     })).filter(b => b.label && b.fileId);
 
     if (!parsedAll.length) throw new Error('No valid rows found (check Label + Drive link columns)');
@@ -885,6 +902,7 @@ async function loadConfigFromSheet(){
     }
 
     buttons = parsed;
+    forgetWarmFailures();   // a new list deserves a clean slate
     // If the folder/week the teacher currently has open got renamed or
     // removed in this sync, don't strand them on a dead sub-list — fall
     // back to the main menu next render.
@@ -1100,6 +1118,7 @@ function renderButtons(){
   requestAnimationFrame(fitGrid);                    // and again once layout has settled
   focusedIndex = 0;
   applyFocusVisual();
+  resumeWarming();          // start fetching indexes for what is now on screen
 }
 
 function activateItem(i){
@@ -1268,26 +1287,29 @@ function unduckScreensaver(){
 
 /* ---------------------- View transitions ---------------------- */
 function showScreensaver(){
+  pauseWarming();   // nothing on the menu is about to be pressed
   currentView = 'screensaver';
-  playerEl.classList.remove('is-paused', 'chrome-hidden');
-  clearTimeout(chromeTimer);
+  playerEl.classList.remove('is-paused');
   activeGroup = null; activeGroupRoom = null; // always wake up back at the main menu, not wherever a teacher left off
   menuEl.classList.remove('open');
   playerEl.classList.remove('open');
   playerFrameWrap.innerHTML = ''; // stop any playing video
   clearTimeout(playerLoadTimeout);
+  clearPlayerTickers();
   playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
   clearIdleTimer();
   unduckScreensaver();
+  // Back at rest: a good moment to notice a new version has been published.
+  try { checkForNewVersionAtScreensaver(); } catch (e) {}
 }
 
 function showMenu(){
   currentView = 'menu';
-  playerEl.classList.remove('is-paused', 'chrome-hidden');
-  clearTimeout(chromeTimer);
+  playerEl.classList.remove('is-paused');
   playerEl.classList.remove('open');
   playerFrameWrap.innerHTML = '';
   clearTimeout(playerLoadTimeout);
+  clearPlayerTickers();
   playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
   menuEl.classList.add('open');
   clearIdleTimer();
@@ -1428,6 +1450,16 @@ function formatHintFor(mimeType){
 }
 
 let playerLoadTimeout = null;
+
+// Repeating timers owned by whatever is currently on the player screen. They
+// have to be stopped explicitly: an interval left running after a teacher
+// walks away is a slow leak that, over a Sunday morning of lesson after
+// lesson, eventually makes the TV sluggish.
+let playerTickers = [];
+function clearPlayerTickers(){
+  for (let i = 0; i < playerTickers.length; i++) clearInterval(playerTickers[i]);
+  playerTickers = [];
+}
 // Bumped every time a video-load attempt starts or is abandoned (back button,
 // a fresh video picked, etc). Each attempt's callbacks (error/timeout/canplay)
 // close over the token they were created with and check it before doing
@@ -1464,6 +1496,7 @@ function imageSources(fileId){
 }
 
 function showImage(b){
+  pauseWarming();   // nothing on the menu is about to be pressed
   if (!b) return;
   currentView = 'player';
   menuEl.classList.remove('open');
@@ -1521,8 +1554,12 @@ function playVideo(b){
   if (!b) return;
   currentView = 'player';
   menuEl.classList.remove('open');
+  // If the menu already fetched this video's index, take that element and put
+  // it on screen — the index comes with it, so there is nothing to wait for.
+  const warmEl = takeWarmVideo(b.fileId);
+  pauseWarming();   // the lesson gets the Wi-Fi to itself from here
   playerFrameWrap.innerHTML =
-    '<video id="playerVideo" autoplay playsinline preload="auto"></video>' +
+    (warmEl ? '' : '<video id="playerVideo" autoplay playsinline preload="auto"></video>') +
     '<div id="playerLoading" class="player-loading">' +
       '<div class="spinner"></div>' +
       '<p>Loading video…</p>' +
@@ -1533,10 +1570,20 @@ function playVideo(b){
       '<p id="playerErrorHeadline">This video couldn’t load. Ask your director to check that the file is still shared as "Anyone with the link."</p>' +
       '<p class="err-detail" id="playerErrorDetail"></p>' +
     '</div>';
+  if (warmEl) {
+    warmEl.id = 'playerVideo';
+    warmEl.setAttribute('autoplay', '');
+    warmEl.setAttribute('playsinline', '');
+    warmEl.preload = 'auto';        // it has the index; now let it buffer frames
+    warmEl.muted = false;           // it was muted only so warming stayed silent
+    playerFrameWrap.insertBefore(warmEl, playerFrameWrap.firstChild);
+  }
   const videoEl = document.getElementById('playerVideo');
   const sources = orderedVideoSources(b.fileId);
-  let sourceIndex = 0;
-  let currentSourceName = '';
+  // A warmed element is already on source 0 and already holds its index, so
+  // the ladder starts at 1 — the next thing to try if this one goes wrong.
+  let sourceIndex = warmEl ? 1 : 0;
+  let currentSourceName = warmEl && sources.length ? sources[0].name : '';
   const myToken = ++playAttemptToken;
 
   // Two very different questions, so two very different clocks:
@@ -1555,6 +1602,12 @@ function playVideo(b){
   //    downloading in the background.
   const FIRST_BYTE_MS = 9000;
   const STALL_MS = 20000;
+
+  // How many full passes through the delivery list we are willing to make.
+  // Three is enough to ride out a momentary hiccup without leaving a teacher
+  // staring at a spinner: worst case roughly a few extra seconds.
+  const LADDER_ATTEMPTS = 3;
+  let ladderAttempt = 0;
 
   let sawBytes = false;   // this source has produced real data
   let hasPlayed = false;  // playback actually started — never restart after this
@@ -1591,9 +1644,9 @@ function playVideo(b){
   // the Mac tool and use that copy — the message names the remedy rather than
   // guessing at the cause. The diagnostic specifics go in the detail line.
   const UNSTREAMABLE_HEADLINE =
-    'This video downloads, but the TV can\'t start playing it. The file needs to be re-saved ' +
-    'in a TV-friendly way. Run "Make Videos TV-Ready" on it, then put that fixed copy in Drive ' +
-    'and use it instead.';
+    'This video is taking too long to start. It may just be a slow moment on the ' +
+    'Wi-Fi — try it again. If it keeps happening on the same video, that file needs ' +
+    're-saving: run "Fix Videos For TV" on it and put the fixed copy in Drive.';
 
   // A clock that nothing resets.
   //
@@ -1605,24 +1658,53 @@ function playVideo(b){
   // guessed: 40 seconds of continuous download with the browser still
   // reporting it knows nothing about the video.)
   //
-  // A file that IS saved for streaming puts its index in the first ~30KB,
-  // so the browser announces the video's length within a second or so even
-  // on poor Wi-Fi. Twelve seconds of bytes flowing with still no length
-  // means the index isn't at the front, and no amount of further waiting
-  // (or trying a different delivery method) will change that.
-  const METADATA_MS = 12000;
+  // HOW LONG TO WAIT, AND WHY IT DEPENDS ON THE FILE'S SIZE
+  // ------------------------------------------------------
+  // A file saved for streaming puts its index in the first ~30KB, so the
+  // browser announces the video's length almost immediately. A file with the
+  // index at the END can never announce it at all. In between sits the case
+  // that was causing false alarms: a BIG file, correctly saved, whose index
+  // is itself several megabytes — on a slow moment of church Wi-Fi even the
+  // front of the file takes a while to arrive. A flat twelve-second clock
+  // accused those perfectly good 200MB+ videos of being broken, which is
+  // exactly the intermittent error that shows up four times out of twenty.
+  //
+  // So the allowance scales with the size the Sheet reports: a floor of 20
+  // seconds, plus 150ms per megabyte, capped at 75 so nothing waits forever.
+  //   20MB  → 23s      92MB  → 34s
+  //   164MB → 45s      280MB → 62s
+  // A file that is genuinely unstreamable still gets caught; a big file on a
+  // bad minute now gets the time it actually needs.
+  const sizeMb = Math.max(0, Math.min(500, Number(b && b.sizeMb) || 0));
+  // MEASURED, and it overturned the obvious answer. The index is 36 bytes per
+  // FRAME, so a 30-minute video carries a ~1.9MB index whether the file is
+  // 267MB or 60MB — identical wait, identical everything. Judging patience by
+  // file size (as this did) is wrong both ways round: too impatient with a
+  // long slim file, too slow to report a short fat one that is genuinely bad.
+  //
+  //   index ≈ 65KB per minute of video
+  //   allow ~1s per minute — roughly three times what even bad Wi-Fi needs —
+  //   on top of 10s for the connection itself.
+  const stated = Math.max(0, Number(b && b.minutes) || 0);
+  // Older sheets have no Minutes column: fall back to estimating from size at
+  // roughly 9MB per minute, which is what this curriculum's files run at.
+  const minutes = Math.min(150, stated || (sizeMb / 9));
+  const METADATA_MS = Math.min(75000, 10000 + minutes * 1000);
   let metadataTimeout = null;
   function clearMetadataTimer(){ clearTimeout(metadataTimeout); metadataTimeout = null; }
+  function metadataClockRunning(){ return metadataTimeout !== null; }
 
   function armMetadataTimer(){
     clearMetadataTimer();
     metadataTimeout = setTimeout(() => {
+      metadataTimeout = null;
       if (myToken !== playAttemptToken) return;
       if (videoEl.readyState > 0) return;     // the browser knows the video — fine
       if (!sawBytes || !looksUnstreamable()) return; // nothing arriving: the other clocks own this
       showPlayerError(
-        'downloaded for ' + (METADATA_MS/1000) + 's from ' + currentSourceName +
-          ' without ever reading the video\'s index',
+        'downloaded for ' + Math.round(METADATA_MS/1000) + 's from ' + currentSourceName +
+          ' (' + (minutes ? (Math.round(minutes * 10) / 10) + ' min' : 'unknown length') +
+          (stated ? '' : ', estimated') + ') without ever reading the video\'s index',
         UNSTREAMABLE_HEADLINE
       );
     }, METADATA_MS);
@@ -1646,10 +1728,12 @@ function playVideo(b){
       if (myToken !== playAttemptToken) return;
       if (videoEl.readyState >= 3) return; // enough buffered to keep playing — not stalled
       if (looksUnstreamable()) {
-        // Bytes have been pouring in for 20 seconds and the browser STILL
-        // can't tell us the video's length. That's the index-at-the-end
-        // case above — no other source can fix it, so stop here rather than
-        // downloading the same enormous file two more times.
+        // Bytes are pouring in and the browser still can't tell us the
+        // video's length. That is the index-at-the-end signature — but on a
+        // big file it is ALSO just what a slow minute looks like, so this
+        // clock does not get to make the call. The size-aware metadata clock
+        // owns this case; stay quiet while it is still running.
+        if (metadataClockRunning()) return;
         showPlayerError(
           'downloaded ' + (STALL_MS/1000) + 's of ' + currentSourceName + ' without ever reading the video\'s index',
           UNSTREAMABLE_HEADLINE
@@ -1689,7 +1773,35 @@ function playVideo(b){
 
     clearPlayTimer();
     if (sourceIndex >= sources.length) {
-      showPlayerError(withFormatHint(lastErrorDetail));
+      // EVERY DELIVERY METHOD FAILED — BUT TRY THE WHOLE LIST AGAIN BEFORE
+      // TELLING ANYONE.
+      //
+      // Ten televisions pulling 200MB files from the same Google account will
+      // occasionally be told "not right now": a brief rate-limit, a dropped
+      // connection, a moment of bad Wi-Fi. Google answers those with something
+      // that isn't video, and the browser reports it as "unsupported" — which
+      // looks identical to a genuinely broken file but isn't one. It is the
+      // reason a video plays four times out of five.
+      //
+      // A blip has passed within a second or two, so rather than put an error
+      // on a classroom wall, wait briefly and walk the whole list again. Only
+      // if it fails EVERY time does something real get reported.
+      if (ladderAttempt < LADDER_ATTEMPTS - 1) {
+        ladderAttempt++;
+        sourceIndex = 0;
+        sawBytes = false;
+        const wait = 1200 * ladderAttempt;   // a beat longer each time
+        playerLoadTimeout = setTimeout(() => {
+          if (myToken !== playAttemptToken) return;
+          tryNextSource('retrying after: ' + (lastErrorDetail || 'no response'));
+        }, wait);
+        return;
+      }
+      // Say how hard we tried. When a director sends a photo of this screen,
+      // "after 3 attempts" is the difference between "the Wi-Fi hiccuped" and
+      // "this file is actually wrong", which are opposite fixes.
+      showPlayerError(withFormatHint(lastErrorDetail) +
+                      ' · still failing after ' + LADDER_ATTEMPTS + ' attempts');
       return;
     }
     const src = sources[sourceIndex];
@@ -1741,8 +1853,33 @@ function playVideo(b){
     if (!pct || !videoEl.duration || !videoEl.buffered.length) return;
     const secs = videoEl.buffered.end(videoEl.buffered.length - 1);
     const share = Math.min(100, Math.round((secs / videoEl.duration) * 100));
-    pct.textContent = share > 0 ? (share + '% loaded') : '';
+    if (share > 0) { pctShown = true; pct.textContent = share + '% loaded'; }
   });
+
+  // BEFORE a percentage is possible, still say something true.
+  //
+  // The percentage above needs the video's length, and the video's length is
+  // exactly what a big file on slow Wi-Fi hasn't told us yet — so in the one
+  // situation where a teacher most needs reassurance, the spinner used to sit
+  // there with no text at all for the better part of a minute. A room full of
+  // children reads that as broken and someone reaches for the remote.
+  //
+  // So while we're waiting, count seconds and say plainly what's happening.
+  const loadStartedAt = Date.now();
+  let pctShown = false;
+  const loadingTicker = setInterval(() => {
+    if (myToken !== playAttemptToken) { clearInterval(loadingTicker); return; }
+    const pct = document.getElementById('playerLoadingPct');
+    const loading = document.getElementById('playerLoading');
+    if (!pct || !loading || loading.hidden) { clearInterval(loadingTicker); return; }
+    if (pctShown) return;                      // a real number beats a guess
+    const secs = Math.round((Date.now() - loadStartedAt) / 1000);
+    if (secs < 6) return;                      // don't nag about a normal wait
+    pct.textContent = secs < 16
+      ? 'Still loading…'
+      : 'Still loading — this is a large video, it can take up to a minute.';
+  }, 1000);
+  playerTickers.push(loadingTicker);
   videoEl.addEventListener('progress', noteBytesArrived);
   videoEl.addEventListener('loadedmetadata', () => { clearMetadataTimer(); noteBytesArrived(); });
   videoEl.addEventListener('loadeddata', noteBytesArrived);
@@ -1788,13 +1925,38 @@ function playVideo(b){
     hideLoadingIndicator();
     videoEl.play().catch(() => {});
   });
+  // Record how long this actually took on THIS television. Guessing at church
+  // Wi-Fi from a laptop somewhere else is how you end up fixing the wrong
+  // thing; the speed screen reads these back.
+  // A warmed-up element has ALREADY fired loadeddata — before this listener
+  // existed — so listening alone would silently miss the very case this is
+  // meant to prove. Record whichever happens: the event, or the fact that it
+  // has already happened.
+  let startRecorded = false;
+  function recordStart(){
+    if (startRecorded || myToken !== playAttemptToken) return;
+    startRecorded = true;
+    noteStartTime(b.label, Date.now() - loadStartedAt, !!warmEl);
+  }
+  videoEl.addEventListener('loadeddata', recordStart);
+  if (videoEl.readyState >= 2) recordStart();
   // A finished video shouldn't leave a frozen last frame on the wall — go
   // back to the list the teacher picked it from, ready for the next one.
   videoEl.addEventListener('ended', () => {
     if (myToken !== playAttemptToken) return;
     if (CONFIG.RETURN_TO_MENU_WHEN_VIDEO_ENDS) showMenu();
   });
-  tryNextSource();
+  if (warmEl) {
+    // Already loaded — skip straight past the ladder's "set the address and
+    // start downloading" step and just play it.
+    videoEl.play().catch(() => {});
+    armFirstByteTimer();
+    armMetadataTimer();
+    if (videoEl.readyState >= 1) noteBytesArrived();
+    if (videoEl.readyState >= 2) hideLoadingIndicator();
+  } else {
+    tryNextSource();
+  }
 
   playerEl.classList.add('open');
   playerBackBtn.classList.add('focused'); // the only thing to press here, so show it as active right away
@@ -1805,6 +1967,7 @@ function playVideo(b){
 
 function showPlayerError(detail, headline){
   clearTimeout(playerLoadTimeout);
+  clearPlayerTickers();
   const vid = document.getElementById('playerVideo');
   const loading = document.getElementById('playerLoading');
   const err = document.getElementById('playerError');
@@ -1849,7 +2012,8 @@ function applyFocusVisual(){
   menuCloseBtn.classList.toggle('focused', onBackSlot);
   const el = btns[focusedIndex];
   if (el) el.scrollIntoView({ block: 'nearest' });
-  prefetchFocusedTile();   // start fetching whatever is under the cursor
+  prefetchFocusedTile();   // pictures: fetch whatever is under the cursor
+  scheduleWarming();       // videos: put the tile under the cursor first in line
 }
 
 /* ---------------------- The remote's own Back button ----------------------
@@ -1940,6 +2104,204 @@ function prefetchFocusedTile(){
   }, PREFETCH_SETTLE_MS);
 }
 
+/* ============ WARMING VIDEOS UP BEFORE ANYONE ASKS FOR ONE ============
+
+   THE MEASUREMENT THAT MADE THIS THE RIGHT FIX
+   --------------------------------------------
+   What makes a video slow to start is NOT how big the file is. Every .mp4
+   carries an index (the "moov atom") listing where every single frame lives,
+   and the player can't show one pixel until it has the whole index. Measured
+   across dozens of encodes, that index is 36 bytes per frame and depends on
+   nothing else:
+
+       15s clip   →   17,712 bytes
+       10 min     →  653,160 bytes
+       30 min     → 1,956,600 bytes
+
+   Re-encoding a 30-minute video from 267MB down to 60MB does not change that
+   number by even one byte. Same duration, same frame count, same index, same
+   wait. So "make the files smaller" — the obvious fix, and the one I was
+   about to recommend — would have saved bandwidth and bought roughly zero
+   seconds at the start of a lesson.
+
+   What the index size actually means, at the ~600 KB/s Google Drive gives:
+
+       30-minute video → 1.9MB index → about 3.2 seconds before frame one
+
+   That is the entire delay. And it is a fixed, predictable download that can
+   perfectly well happen BEFORE the teacher presses anything.
+
+   WHAT THIS DOES
+   --------------
+   While the menu is on screen, a hidden video element is pointed at each
+   video in view, one at a time, with preload="metadata" — which fetches
+   exactly the index and then stops. When a teacher presses OK, that warmed-up
+   element is MOVED into the player rather than a new one being created, so
+   the index it already holds comes with it and playback can begin at once.
+
+   Moving the element is the whole trick: buffered data belongs to the element,
+   not to the address, so a fresh <video> pointed at the same URL would start
+   over from nothing.
+
+   Warming pauses while a lesson is playing — the video on the wall should
+   have the Wi-Fi to itself.
+   ==================================================================== */
+const WARM_MAX = 5;                 // hidden elements kept alive at once
+const WARM_START_DELAY_MS = 400;    // let the menu paint before we touch the network
+const WARM_TIMEOUT_MS = 30000;      // stop waiting on one file and move to the next
+
+let warmPool = new Map();   // fileId -> a <video> holding that file's index
+// Files that would not warm up. Without this, every press of an arrow key
+// rebuilds the queue and re-attempts the same broken file, so one bad video
+// would quietly hammer Google every time a teacher moved the cursor.
+let warmFailed = new Set();
+let warmQueue = [];
+let warmBusy = false;
+let warmPaused = false;
+let warmInFlight = null;    // { fileId, el } currently downloading
+let warmHolderEl = null;
+let warmStartTimer = null;
+
+function warmHolder(){
+  if (!warmHolderEl) {
+    warmHolderEl = document.createElement('div');
+    warmHolderEl.id = 'videoWarmer';
+    // Off-screen rather than display:none — a hidden element is allowed to
+    // skip loading entirely in some browsers, which would defeat the point.
+    warmHolderEl.style.cssText =
+      'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
+    warmHolderEl.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(warmHolderEl);
+  }
+  return warmHolderEl;
+}
+
+function discardWarm(fileId){
+  const el = warmPool.get(fileId);
+  warmPool.delete(fileId);
+  if (el && el.parentNode) {
+    try { el.removeAttribute('src'); el.load(); } catch (e) {}
+    el.parentNode.removeChild(el);
+  }
+}
+
+function trimWarmPool(){
+  // Map keeps insertion order, so the first key is the oldest.
+  while (warmPool.size > WARM_MAX) {
+    const oldest = warmPool.keys().next().value;
+    if (oldest === undefined) break;
+    discardWarm(oldest);
+  }
+}
+
+// Stop everything in flight. Called the moment a lesson starts, so the video
+// a class is actually watching is not competing with a background download.
+function pauseWarming(){
+  warmPaused = true;
+  clearTimeout(warmStartTimer);
+  warmQueue = [];
+  if (warmInFlight) {
+    // Half a downloaded index is worse than none: it would be taken later and
+    // look ready when it isn't.
+    discardWarm(warmInFlight.fileId);
+    warmInFlight = null;
+  }
+  warmBusy = false;
+}
+
+function resumeWarming(){
+  warmPaused = false;
+  scheduleWarming();
+}
+
+// Build the queue from what is on screen, focused tile first.
+// A new list of videos is a fresh start: a file that failed last hour may
+// simply have been a bad moment on the Wi-Fi.
+function forgetWarmFailures(){ warmFailed.clear(); }
+
+function scheduleWarming(){
+  clearTimeout(warmStartTimer);
+  if (warmPaused) return;
+  warmStartTimer = setTimeout(() => {
+    if (warmPaused || currentView !== 'menu') return;
+    const wanted = [];
+    for (let i = 0; i < visibleItems.length; i++) {
+      const item = visibleItems[i];
+      if (!item || item.kind !== 'video' || !item.data || !item.data.fileId) continue;
+      wanted.push(item.data.fileId);
+    }
+    if (!wanted.length) return;
+    // Whatever the cursor is sitting on is the one most likely to be pressed.
+    const focused = visibleItems[focusedIndex];
+    if (focused && focused.kind === 'video' && focused.data && focused.data.fileId) {
+      const id = focused.data.fileId;
+      const at = wanted.indexOf(id);
+      if (at > 0) { wanted.splice(at, 1); wanted.unshift(id); }
+    }
+    warmQueue = wanted.filter(id => !warmPool.has(id) && !warmFailed.has(id));
+    warmNext();
+  }, WARM_START_DELAY_MS);
+}
+
+function warmNext(){
+  if (warmBusy || warmPaused) return;
+  const fileId = warmQueue.shift();
+  if (!fileId) return;
+  if (warmPool.has(fileId)) { warmNext(); return; }
+
+  let sources;
+  try { sources = orderedVideoSources(fileId); } catch (e) { return; }
+  if (!sources || !sources.length) { warmNext(); return; }
+
+  const el = document.createElement('video');
+  el.preload = 'metadata';
+  el.muted = true;
+  el.setAttribute('playsinline', '');
+  if (sources[0].crossOrigin) el.setAttribute('crossorigin', sources[0].crossOrigin);
+  warmHolder().appendChild(el);
+
+  warmBusy = true;
+  warmInFlight = { fileId: fileId, el: el };
+  warmPool.set(fileId, el);
+  trimWarmPool();
+
+  let settled = false;
+  const done = (keep) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight = null;
+    warmBusy = false;
+    if (!keep) { discardWarm(fileId); warmFailed.add(fileId); }
+    // One at a time, always: two background downloads would halve the speed
+    // of the one the teacher is most likely to want.
+    if (!warmPaused) warmNext();
+  };
+  const timer = setTimeout(() => done(false), WARM_TIMEOUT_MS);
+  el.addEventListener('loadedmetadata', () => done(true), { once: true });
+  el.addEventListener('error', () => done(false), { once: true });
+
+  try { el.src = sources[0].url; el.load(); } catch (e) { done(false); }
+}
+
+// Hand the player a warmed-up element, if we have a usable one. Returns null
+// when there is nothing ready, and the player creates a fresh element as
+// before — so this can only ever make things faster, never break them.
+function takeWarmVideo(fileId){
+  const el = warmPool.get(fileId);
+  if (!el) return null;
+  warmPool.delete(fileId);
+  if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight = null;
+  // A half-downloaded index is still a head start, so a still-loading element
+  // is worth taking; only a broken or address-less one is thrown away.
+  if (el.error || !el.getAttribute('src')) {
+    if (el.parentNode) el.parentNode.removeChild(el);
+    return null;
+  }
+  if (el.parentNode) el.parentNode.removeChild(el);
+  return el;
+}
+
 /* ==================== TVs THAT UPDATE THEMSELVES ====================
    Ten televisions on brackets in ten classrooms. Nobody should have to visit
    each one with a remote to clear a cache after every change — and kiosk
@@ -1978,6 +2340,152 @@ setInterval(checkForNewVersion, UPDATE_CHECK_MINUTES * 60 * 1000);
 // Also look shortly after start-up, so a TV switched on after a change picks
 // it up straight away rather than up to twenty minutes later.
 setTimeout(checkForNewVersion, 45 * 1000);
+
+// AND look every time the TV falls back to the screensaver.
+//
+// This is the one that makes a change actually appear. The timer above can
+// only reload at the screensaver, so if its twenty-minute tick happens to
+// land while a class is watching a video, that TV stays on the old version
+// for another twenty minutes — which is exactly what "I can't get the TVs to
+// show the new version" feels like from the other end. Checking on the way
+// back to the screensaver means a TV picks up a change within seconds of the
+// lesson it was showing finishing.
+//
+// Throttled so that a teacher tapping in and out of the menu can't turn this
+// into a request every second.
+var SCREENSAVER_CHECK_MIN_GAP_MS = 90 * 1000;
+var lastUpdateCheckAt = 0;   // var, not let: showScreensaver must never be able
+                             // to throw, whatever order things load in
+function checkForNewVersionAtScreensaver(){
+  const now = Date.now();
+  if (now - lastUpdateCheckAt < SCREENSAVER_CHECK_MIN_GAP_MS) return;
+  lastUpdateCheckAt = now;
+  checkForNewVersion();
+}
+
+/* ==================== THE SPEED SCREEN ====================
+   Press UP twice, quickly, on the screensaver.
+
+   This exists because the single most important number — how fast this
+   television can actually pull video — cannot be measured from anywhere but
+   this television. Google Drive's speed, the church Wi-Fi, the distance to
+   the router and the wall the signal goes through all land in one figure, and
+   that figure decides whether anything further is worth doing.
+
+   It shows two things:
+     • what real lessons took to start, measured as they played
+     • a live test: fetch 2MB and time it
+
+   Press any key to close. Nothing here changes any setting.
+   ========================================================= */
+const START_LOG_MAX = 6;
+let startLog = [];
+
+function noteStartTime(label, ms, wasWarm){
+  startLog.unshift({ label: label || 'video', ms: ms, warm: !!wasWarm });
+  if (startLog.length > START_LOG_MAX) startLog.length = START_LOG_MAX;
+}
+
+function speedPanel(){
+  let el = document.getElementById('speedPanel');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'speedPanel';
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:120;background:#060a14;color:#e8eefc;' +
+      'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.15rem;line-height:1.7;' +
+      'padding:6vh 7vw;overflow:auto;white-space:pre-wrap;';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function closeSpeedPanel(){
+  const el = document.getElementById('speedPanel');
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function describeStarts(){
+  if (!startLog.length) return '  (no lessons played yet on this TV since it last restarted)';
+  return startLog.map(r =>
+    '  ' + (r.ms / 1000).toFixed(1) + 's   ' + (r.warm ? '[ready ahead]' : '[from cold] ') +
+    '  ' + String(r.label).slice(0, 34)
+  ).join('\n');
+}
+
+async function measureSpeed(){
+  const el = speedPanel();
+  const first = buttons.find(b => b.fileId && mediaKind(b) === 'video');
+  const render = (speedLine, verdict) =>
+    el.textContent =
+      'SPEED CHECK — First Kids TV\n' +
+      '===========================\n\n' +
+      'Build     ' + KTV_BUILD + '\n' +
+      'Room      ' + (ROOM || '(not set — this TV shows both rooms)') + '\n' +
+      'Videos    ' + buttons.length + ' in the list\n\n' +
+      'HOW FAST THIS TV PULLS VIDEO\n' + speedLine + '\n\n' +
+      verdict + '\n\n' +
+      'RECENT LESSONS, TIME TO FIRST PICTURE\n' + describeStarts() + '\n\n' +
+      'Press any key to close.';
+
+  render('  measuring…', '');
+  if (!first) { render('  no video available to test with', ''); return; }
+
+  try {
+    const src = orderedVideoSources(first.fileId)[0];
+    // Never let the measurement itself hang the screen. If a server answers
+    // with a length it then fails to deliver, the request would otherwise sit
+    // there forever and the panel would read "measuring…" until someone
+    // pressed a key.
+    const stop = new AbortController();
+    const giveUp = setTimeout(() => stop.abort(), 20000);
+    const t0 = performance.now();
+    let bytes = 0;
+    try {
+      const res = await fetch(src.url, {
+        headers: { Range: 'bytes=0-2097151' }, cache: 'no-store', signal: stop.signal
+      });
+      if (res.body && res.body.getReader) {
+        // Read incrementally so a short answer still counts what did arrive.
+        const reader = res.body.getReader();
+        for (;;) {
+          const step = await reader.read();
+          if (step.done) break;
+          bytes += step.value ? step.value.length : 0;
+          if (bytes >= 2097152) { try { reader.cancel(); } catch (e2) {} break; }
+        }
+      } else {
+        bytes = (await res.arrayBuffer()).byteLength;
+      }
+    } catch (abortErr) {
+      // Aborted or failed partway: whatever arrived is still a real sample.
+    }
+    clearTimeout(giveUp);
+    const secs = (performance.now() - t0) / 1000;
+    if (bytes < 32768) { render('  only ' + bytes + ' bytes arrived in ' + secs.toFixed(1) + 's',
+      'VERDICT: this TV can barely reach the videos at all. Check its Wi-Fi.'); return; }
+    const kbs = Math.round((bytes / 1024) / Math.max(0.001, secs));
+
+    // A 30-minute video carries a ~1.9MB index, and nothing can start before
+    // that index has arrived. This turns the measured speed into the number
+    // that actually matters to a teacher.
+    const ttff = 1956600 / (kbs * 1024);
+    const verdict =
+      kbs >= 1500 ? 'VERDICT: plenty fast. A 30-minute video should start in about ' + ttff.toFixed(1) + 's.'
+    : kbs >= 650  ? 'VERDICT: adequate. A 30-minute video should start in about ' + ttff.toFixed(1) + 's.'
+    : kbs >= 250  ? 'VERDICT: slow. A 30-minute video needs about ' + ttff.toFixed(1) + 's from cold.\n' +
+                    '         Warming on the menu hides most of this. Moving the videos off\n' +
+                    '         Google Drive would fix it properly.'
+    :               'VERDICT: very slow — something is wrong with this TV\'s Wi-Fi.\n' +
+                    '         Check signal strength before changing anything else.';
+
+    render('  ' + (bytes / 1048576).toFixed(2) + 'MB in ' + secs.toFixed(1) + 's  =  ' +
+           kbs + ' KB/s  (' + (kbs * 8 / 1024).toFixed(1) + ' Mbps)', verdict);
+  } catch (e) {
+    render('  the test could not run: ' + (e && e.message ? e.message : 'unknown error'),
+           'If every video also fails, this TV is offline.');
+  }
+}
 
 /* ==================== LOOK-AND-FEEL THEMES ====================
    Five complete colour schemes live in the stylesheet at the top of this file.
@@ -2040,6 +2548,7 @@ applyTheme(currentThemeId(), false); // restore this TV's saved look immediately
 // Two LEFT presses within this window on the screensaver = change theme.
 const THEME_GESTURE_MS = 1500;
 let lastLeftPressAt = 0;
+let lastUpPressAt = 0;
 
 /* ==================== PLAYER CHROME (auto-hiding) ====================
    The back arrow and the one-line hint fade away a few seconds after the last
@@ -2047,9 +2556,10 @@ let lastLeftPressAt = 0;
    paused they stay visible, because a frozen picture with no controls reads
    as "broken" rather than "paused".
    ==================================================================== */
-const CHROME_HIDE_MS = 3500;
-let chromeTimer = null;
-
+/* The player has no on-screen controls left to show or hide — the back arrow
+   was removed and so was the hint line. What survives here is the one part
+   still needed: creating the pause badge the first time a video opens. The
+   fade timer and its class went with the controls they used to move. */
 function ensurePlayerChrome(){
   if (!document.getElementById('pauseBadge')) {
     const badge = document.createElement('div');
@@ -2067,18 +2577,6 @@ function ensurePlayerChrome(){
 
 function showPlayerChrome(){
   ensurePlayerChrome();
-  playerEl.classList.remove('chrome-hidden');
-  clearTimeout(chromeTimer);
-  chromeTimer = setTimeout(() => {
-    const vid = document.getElementById('playerVideo');
-    if (vid && vid.paused) return;              // stay visible while paused
-    playerEl.classList.add('chrome-hidden');
-  }, CHROME_HIDE_MS);
-}
-
-function hidePlayerChromeNow(){
-  clearTimeout(chromeTimer);
-  playerEl.classList.add('chrome-hidden');
 }
 
 // Only videos can pause. Pictures ignore OK entirely — pressing it should
@@ -2106,6 +2604,7 @@ document.addEventListener('keydown', (e) => {
     // second and a half cycle the colour scheme. A single LEFT does nothing,
     // which is why it can't be stumbled into — every OTHER key still wakes
     // the menu exactly as before.
+    if (document.getElementById('speedPanel')) { closeSpeedPanel(); e.preventDefault(); return; }
     if (e.key === 'ArrowLeft') {
       const now = Date.now();
       if (now - lastLeftPressAt < THEME_GESTURE_MS) { cycleTheme(); lastLeftPressAt = 0; }
@@ -2113,6 +2612,16 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       return;
     }
+    // UP twice, quickly, opens the speed check — same idea as the theme
+    // switch, and just as impossible to hit by accident.
+    if (e.key === 'ArrowUp') {
+      const now = Date.now();
+      if (now - lastUpPressAt < THEME_GESTURE_MS) { lastUpPressAt = 0; measureSpeed(); }
+      else { lastUpPressAt = now; }
+      e.preventDefault();
+      return;
+    }
+    lastUpPressAt = 0;
     lastLeftPressAt = 0;
     e.preventDefault();
     showMenu();
