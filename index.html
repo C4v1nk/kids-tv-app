@@ -15,6 +15,10 @@
   =====================================================================
 -->
 
+<!-- The build, where it can be read from OUTSIDE the page. KTV_BUILD below
+     lives inside a script, so anyone checking which version a TV is actually
+     serving had to run the page to find out. This makes it a plain fetch. -->
+<meta name="ktv-build" content="2026-09-06i">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Opening a connection to Google costs about a third of a second on a cheap
@@ -36,7 +40,7 @@
      (deliberately obscure, so a teacher can't wander into it) and is remembered
      on that TV afterwards. Each TV keeps its own choice.
      ---------------------------------------------------------------- */
-  :root, :root[data-theme="classic"]{
+  :root, [data-theme="classic"]{
     --bg: #0b1120;
     --bg-panel: #141d33;
     --bg-panel-2: #1b2740;
@@ -49,7 +53,7 @@
     --focus-ring: 0 0 0 6px rgba(246,173,55,0.35), 0 0 0 3px var(--accent);
     --radius: 28px;
   }
-  :root[data-theme="sunshine"]{
+  [data-theme="sunshine"]{
     --bg: #fff8ec; --bg-panel: #ffffff; --bg-panel-2: #fff1d6;
     --accent: #ff8a3d; --accent-ink: #4a1e00;
     --text: #2b1c0a; --muted: #8a6b4a; --border: #e6bd83; --danger: #d93b3b;
@@ -57,7 +61,7 @@
     --radius: 30px;
     --tile-edge: rgba(255,138,61,0.18);
   }
-  :root[data-theme="bubblegum"]{
+  [data-theme="bubblegum"]{
     --bg: #2a0f3d; --bg-panel: #3d1857; --bg-panel-2: #4d1f6d;
     --accent: #ff5fa2; --accent-ink: #3d0020;
     --text: #fff2fb; --muted: #d0a8e6; --border: #7d3aa6; --danger: #ff5252;
@@ -65,7 +69,7 @@
     --radius: 34px;
     --tile-edge: rgba(255,95,162,0.22);
   }
-  :root[data-theme="jungle"]{
+  [data-theme="jungle"]{
     --bg: #08251c; --bg-panel: #0f3a2b; --bg-panel-2: #164a38;
     --accent: #46d17f; --accent-ink: #03291c;
     --text: #eafff4; --muted: #8fc7ab; --border: #26765a; --danger: #ff6b5b;
@@ -78,7 +82,7 @@
      there are no image files to host, nothing extra to download, and they
      stay razor sharp on a 55" screen. They sit on the menu background only —
      never behind a video or a picture, where they would be a distraction. */
-  :root[data-theme="confetti"]{
+  [data-theme="confetti"]{
     --bg: #fdf3ff; --bg-panel: #ffffff; --bg-panel-2: #f6e9ff;
     --accent: #e0409a; --accent-ink: #40001f;
     --text: #2c1338; --muted: #7a5a8c; --border: #dcaeee; --danger: #e0403f;
@@ -89,7 +93,7 @@
     --pattern-veil: rgba(253,243,255,0.62);
     --tile-edge: rgba(224,64,154,0.18);
   }
-  :root[data-theme="deepsea"]{
+  [data-theme="deepsea"]{
     --bg: #04263f; --bg-panel: #0a3b5c; --bg-panel-2: #0f4b6e;
     --accent: #3fd0d8; --accent-ink: #01262a;
     --text: #eaffff; --muted: #86bdd2; --border: #1d6f9c; --danger: #ff7a6b;
@@ -100,7 +104,7 @@
     --pattern-veil: rgba(4,38,63,0.55);
     --tile-edge: rgba(63,208,216,0.22);
   }
-  :root[data-theme="starrynight"]{
+  [data-theme="starrynight"]{
     --bg: #171043; --bg-panel: #241a5e; --bg-panel-2: #2e2175;
     --accent: #ffd76e; --accent-ink: #2a1c00;
     --text: #f6f2ff; --muted: #b3a6e0; --border: #4a3aa8; --danger: #ff7b8a;
@@ -111,7 +115,7 @@
     --pattern-veil: rgba(23,16,67,0.45);
     --tile-edge: rgba(255,215,110,0.20);
   }
-  :root[data-theme="rainbow"]{
+  [data-theme="rainbow"]{
     --bg: #fffaf2; --bg-panel: #ffffff; --bg-panel-2: #fff2e0;
     --accent: #ff7043; --accent-ink: #3d1200;
     --text: #33231a; --muted: #8b6a58; --border: #f5bd8e; --danger: #e0403f;
@@ -122,7 +126,7 @@
     --pattern-veil: rgba(255,250,242,0.68);
     --tile-edge: rgba(255,112,67,0.20);
   }
-  :root[data-theme="garden"]{
+  [data-theme="garden"]{
     --bg: #f3fbf0; --bg-panel: #ffffff; --bg-panel-2: #e7f6e2;
     --accent: #43a047; --accent-ink: #06230a;
     --text: #1d3320; --muted: #6d8a70; --border: #a8d49f; --danger: #e05252;
@@ -133,7 +137,62 @@
     --pattern-veil: rgba(243,251,240,0.64);
     --tile-edge: rgba(67,160,71,0.20);
   }
-  :root[data-theme="highcontrast"]{
+  [data-theme="cosmos"]{
+    --bg: #150a2e; --bg-panel: #271551; --bg-panel-2: #1d0f3f;
+    --accent: #ffb347; --accent-ink: #2a1500;
+    --text: #f2ebff; --muted: #a998cf; --border: #4a2f86; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(255,179,71,0.28), 0 0 0 4px var(--accent);
+    --radius: 26px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='300'%20viewBox='0%200%20300%20300'%3E%3Cg%20fill='%23ffffff'%20opacity='.55'%3E%3Ccircle%20cx='34'%20cy='42'%20r='2.4'/%3E%3Ccircle%20cx='210'%20cy='28'%20r='1.8'/%3E%3Ccircle%20cx='128'%20cy='96'%20r='2'/%3E%3Ccircle%20cx='262'%20cy='150'%20r='2.4'/%3E%3Ccircle%20cx='70'%20cy='196'%20r='1.8'/%3E%3Ccircle%20cx='186'%20cy='240'%20r='2.2'/%3E%3Ccircle%20cx='248'%20cy='262'%20r='1.6'/%3E%3Ccircle%20cx='96'%20cy='268'%20r='1.8'/%3E%3C/g%3E%3Cg%20transform='translate(74%2092)'%3E%3Ccircle%20r='21'%20fill='%23f5a25d'/%3E%3Ccircle%20cx='-6'%20cy='-6'%20r='5'%20fill='%23d9803a'%20opacity='.55'/%3E%3Cellipse%20rx='34'%20ry='9'%20fill='none'%20stroke='%23ffd9a8'%20stroke-width='4'%20transform='rotate(-18)'/%3E%3C/g%3E%3Cg%20transform='translate(228%20205)'%3E%3Ccircle%20r='14'%20fill='%237fd4e8'/%3E%3Ccircle%20cx='5'%20cy='4'%20r='4'%20fill='%234fa9c4'%20opacity='.6'/%3E%3C/g%3E%3Cg%20transform='translate(160%2040)%20rotate(28)'%3E%3Cpath%20d='M0%20-18%20q9%2012%209%2022%20h-18%20q0-10%209-22z'%20fill='%23ffe9d1'/%3E%3Ccircle%20cy='-2'%20r='4'%20fill='%237a4bd0'/%3E%3Cpath%20d='M-9%204%20l-7%2010%20h7z%20M9%204%20l7%2010%20h-7z'%20fill='%23ff8a5c'/%3E%3Cpath%20d='M-4%2012%20q4%2010%204%2014%20q0-4%204-14z'%20fill='%23ffc46b'/%3E%3C/g%3E%3Cg%20stroke='%23ffe9a8'%20stroke-width='2.5'%20stroke-linecap='round'%3E%3Cpath%20d='M40%20240%20v10%20M35%20245%20h10'/%3E%3Cpath%20d='M270%2078%20v9%20M265.5%2082.5%20h9'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(21,10,46,0.56);
+    --tile-edge: rgba(255,179,71,0.22);
+  }
+  [data-theme="campfire"]{
+    --bg: #1d130e; --bg-panel: #35231a; --bg-panel-2: #291a13;
+    --accent: #ff8a3d; --accent-ink: #2b1002;
+    --text: #ffeede; --muted: #c9a892; --border: #63412f; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(255,138,61,0.30), 0 0 0 4px var(--accent);
+    --radius: 24px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='300'%20viewBox='0%200%20300%20300'%3E%3Cg%20transform='translate(70%2080)'%3E%3Cpath%20d='M0%2026%20q-16-12-10-28%20q4%208%2010%206%20q-4-16%2010-26%20q-2%2014%208%2020%20q8%208%206%2018%20q-2%2012-14%2012z'%20fill='%23ff8a3d'/%3E%3Cpath%20d='M0%2026%20q-9-8-5-18%20q3%206%207%204%20q-2-9%206-15%20q-1%209%204%2013%20q5%205%203%2011%20q-2%207-9%207z'%20fill='%23ffd05e'/%3E%3C/g%3E%3Cg%20transform='translate(216%20196)%20rotate(-18)'%3E%3Cpath%20d='M-40%200%20h58'%20stroke='%238a6244'%20stroke-width='4'%20stroke-linecap='round'%20fill='none'/%3E%3Crect%20x='14'%20y='-9'%20width='20'%20height='18'%20rx='6'%20fill='%23fff2e0'/%3E%3Crect%20x='14'%20y='-9'%20width='20'%20height='18'%20rx='6'%20fill='none'%20stroke='%23e6c9a8'%20stroke-width='2'/%3E%3C/g%3E%3Cg%20transform='translate(70%20118)'%3E%3Crect%20x='-32'%20y='0'%20width='64'%20height='11'%20rx='5.5'%20fill='%236b4630'%20transform='rotate(-8)'/%3E%3Crect%20x='-30'%20y='7'%20width='60'%20height='11'%20rx='5.5'%20fill='%235a3826'%20transform='rotate(7)'/%3E%3C/g%3E%3Cg%20fill='%23ffc46b'%3E%3Ccircle%20cx='108'%20cy='40'%20r='2.6'/%3E%3Ccircle%20cx='130'%20cy='72'%20r='2'/%3E%3Ccircle%20cx='44'%20cy='34'%20r='2.2'/%3E%3Ccircle%20cx='250'%20cy='60'%20r='2.4'/%3E%3Ccircle%20cx='268'%20cy='108'%20r='2'/%3E%3Ccircle%20cx='30'%20cy='230'%20r='2.2'/%3E%3Ccircle%20cx='150'%20cy='250'%20r='2.6'/%3E%3Ccircle%20cx='118'%20cy='196'%20r='2'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(29,19,14,0.58);
+    --tile-edge: rgba(255,138,61,0.24);
+  }
+  [data-theme="snowday"]{
+    --bg: #eef6fd; --bg-panel: #ffffff; --bg-panel-2: #dcecfa;
+    --accent: #1f6ea8; --accent-ink: #ffffff;
+    --text: #15304a; --muted: #5d7c95; --border: #a6cde9; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(31,110,168,0.22), 0 0 0 4px var(--accent);
+    --radius: 28px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='300'%20viewBox='0%200%20300%20300'%3E%3Cg%20transform='translate(58%2056)'%20stroke='%23b9dcf5'%20stroke-width='3'%20stroke-linecap='round'%20fill='none'%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%200%20L0%20-20'%20transform='rotate(300)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%20-20%20l-4%20-5%20M0%20-20%20l4%20-5'%20transform='rotate(300)'/%3E%3C/g%3E%3Cg%20transform='translate(214%20128)'%20stroke='%23cfe8fa'%20stroke-width='2.6'%20stroke-linecap='round'%20fill='none'%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%200%20L0%20-15'%20transform='rotate(300)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%20-15%20l-4%20-5%20M0%20-15%20l4%20-5'%20transform='rotate(300)'/%3E%3C/g%3E%3Cg%20transform='translate(120%20224)'%20stroke='%23c3e1f7'%20stroke-width='2.8'%20stroke-linecap='round'%20fill='none'%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%200%20L0%20-17'%20transform='rotate(300)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%20-17%20l-4%20-5%20M0%20-17%20l4%20-5'%20transform='rotate(300)'/%3E%3C/g%3E%3Cg%20transform='translate(262%20246)'%20stroke='%23d8eefb'%20stroke-width='2.4'%20stroke-linecap='round'%20fill='none'%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%200%20L0%20-11'%20transform='rotate(300)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(0)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(60)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(120)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(180)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(240)'/%3E%3Cpath%20d='M0%20-11%20l-4%20-5%20M0%20-11%20l4%20-5'%20transform='rotate(300)'/%3E%3C/g%3E%3Cg%20transform='translate(196%2044)%20rotate(14)'%3E%3Cpath%20d='M0%200%20h22%20a11%2011%200%200%201%2011%2011%20v18%20a9%209%200%200%201-9%209%20h-24%20a9%209%200%200%201-9-9%20v-18%20a11%2011%200%200%201%209-11z'%20fill='%23a8d0ee'/%3E%3Cpath%20d='M-9%2012%20a7%207%200%200%200-7%207%20a7%207%200%200%200%207%207z'%20fill='%23a8d0ee'/%3E%3Crect%20x='-11'%20y='-5'%20width='46'%20height='7'%20rx='3.5'%20fill='%23e5f2fc'/%3E%3C/g%3E%3Cg%20fill='%23e4f1fb'%3E%3Cellipse%20cx='40'%20cy='170'%20rx='30'%20ry='9'/%3E%3Cellipse%20cx='250'%20cy='196'%20rx='24'%20ry='7'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(238,246,253,0.66);
+    --tile-edge: rgba(31,110,168,0.18);
+  }
+  [data-theme="lemonade"]{
+    --bg: #f0fbf6; --bg-panel: #ffffff; --bg-panel-2: #ddf3ea;
+    --accent: #0d7f68; --accent-ink: #ffffff;
+    --text: #0f3229; --muted: #5a8376; --border: #9bd7c2; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(13,127,104,0.20), 0 0 0 4px var(--accent);
+    --radius: 30px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='300'%20viewBox='0%200%20300%20300'%3E%3Cg%20transform='translate(62%2066)%20rotate(12)'%3E%3Ccircle%20r='24'%20fill='%23fdf6dc'%20stroke='%23f0cf62'%20stroke-width='3'/%3E%3Cpath%20d='M0%200%20L19.8%20-9.7%20A24%2024%200%200%201%2019.8%209.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L18.3%2012.3%20A24%2024%200%200%201%201.5%2022.0%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-1.5%2022.0%20A24%2024%200%200%201%20-18.3%2012.3%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-19.8%209.7%20A24%2024%200%200%201%20-19.8%20-9.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-18.3%20-12.3%20A24%2024%200%200%201%20-1.5%20-22.0%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L1.5%20-22.0%20A24%2024%200%200%201%2018.3%20-12.3%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3C/g%3E%3Cg%20transform='translate(232%20190)%20rotate(-20)'%3E%3Ccircle%20r='19'%20fill='%23fdf6dc'%20stroke='%23f0cf62'%20stroke-width='3'/%3E%3Cpath%20d='M0%200%20L15.7%20-7.7%20A19%2019%200%200%201%2015.7%207.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L14.5%209.8%20A19%2019%200%200%201%201.2%2017.4%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-1.2%2017.4%20A19%2019%200%200%201%20-14.5%209.8%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-15.7%207.7%20A19%2019%200%200%201%20-15.7%20-7.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-14.5%20-9.8%20A19%2019%200%200%201%20-1.2%20-17.4%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L1.2%20-17.4%20A19%2019%200%200%201%2014.5%20-9.8%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3C/g%3E%3Cg%20transform='translate(150%20262)%20rotate(40)'%3E%3Ccircle%20r='15'%20fill='%23fdf6dc'%20stroke='%23f0cf62'%20stroke-width='3'/%3E%3Cpath%20d='M0%200%20L12.4%20-6.0%20A15%2015%200%200%201%2012.4%206.0%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L11.4%207.7%20A15%2015%200%200%201%201.0%2013.8%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-1.0%2013.8%20A15%2015%200%200%201%20-11.4%207.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-12.4%206.0%20A15%2015%200%200%201%20-12.4%20-6.0%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L-11.4%20-7.7%20A15%2015%200%200%201%20-1.0%20-13.8%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3Cpath%20d='M0%200%20L1.0%20-13.8%20A15%2015%200%200%201%2011.4%20-7.7%20Z'%20fill='%23fff3c4'%20stroke='%23f4d36b'%20stroke-width='1.5'/%3E%3C/g%3E%3Cg%20fill='%23a8e0c4'%3E%3Cellipse%20cx='210'%20cy='58'%20rx='17'%20ry='9'%20transform='rotate(-28%20210%2058)'/%3E%3Cellipse%20cx='60'%20cy='202'%20rx='15'%20ry='8'%20transform='rotate(22%2060%20202)'/%3E%3Cellipse%20cx='272'%20cy='96'%20rx='13'%20ry='7'%20transform='rotate(-10%20272%2096)'/%3E%3C/g%3E%3Cg%20stroke='%2381cfab'%20stroke-width='2'%20fill='none'%20stroke-linecap='round'%3E%3Cpath%20d='M196%2064%20q14-6%2028-12'/%3E%3Cpath%20d='M48%20206%20q12-5%2024-8'/%3E%3C/g%3E%3Cg%20fill='none'%20stroke='%23bfe9d6'%20stroke-width='2.5'%3E%3Ccircle%20cx='128'%20cy='120'%20r='7'/%3E%3Ccircle%20cx='148'%20cy='142'%20r='4.5'/%3E%3Ccircle%20cx='104'%20cy='150'%20r='5'/%3E%3Ccircle%20cx='258'%20cy='262'%20r='6'/%3E%3Ccircle%20cx='34'%20cy='120'%20r='4.5'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(240,251,246,0.68);
+    --tile-edge: rgba(13,127,104,0.18);
+  }
+  [data-theme="chalkboard"]{
+    --bg: #22392f; --bg-panel: #31493e; --bg-panel-2: #284036;
+    --accent: #ffe27a; --accent-ink: #1e2b16;
+    --text: #f3f8f4; --muted: #a8c2b4; --border: #4a6a5c; --danger: #e05252;
+    --focus-ring: 0 0 0 7px rgba(255,226,122,0.26), 0 0 0 4px var(--accent);
+    --radius: 18px;
+    --menu-pattern:
+      url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='300'%20viewBox='0%200%20300%20300'%3E%3Cg%20stroke='%23eef5f0'%20stroke-width='2.6'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'%20opacity='.62'%3E%3Ccircle%20cx='64'%20cy='60'%20r='16'/%3E%3Cpath%20d='M64%2032%20v-9%20M64%2088%20v9%20M36%2060%20h-9%20M92%2060%20h9%20M45%2041%20l-6-6%20M83%2079%20l6%206%20M83%2041%20l6-6%20M45%2079%20l-6%206'/%3E%3Cpath%20d='M150%2046%20q14-18%2028%200%20t28%200%20t28%200'/%3E%3Cpath%20d='M232%20128%20l6%2013%2014%202%20-10%2010%202%2014%20-12-7%20-12%207%202-14%20-10-10%2014-2z'/%3E%3Cpath%20d='M40%20210%20q34-26%2068-6'/%3E%3Cpath%20d='M100%20196%20l8%208%20-11%204'/%3E%3Cpath%20d='M156%20214%20v34%20M143%20226%20h26'/%3E%3Cpath%20d='M264%20214%20v34%20a8%208%200%201%201-6-7%20v-24%20l14-4%20v22%20a8%208%200%201%201-6-7'/%3E%3Cpath%20d='M96%20268%20a13%2013%200%200%201%2024-6%20a11%2011%200%200%201%2014%2012%20h-42%20a10%2010%200%200%201%204-6z'/%3E%3C/g%3E%3Cg%20fill='%23f3f8f4'%20opacity='.35'%3E%3Ccircle%20cx='198'%20cy='96'%20r='2.4'/%3E%3Ccircle%20cx='120'%20cy='150'%20r='2'/%3E%3Ccircle%20cx='276'%20cy='58'%20r='2.2'/%3E%3Ccircle%20cx='22'%20cy='150'%20r='2'/%3E%3C/g%3E%3C/svg%3E");
+    --pattern-veil: rgba(34,57,47,0.50);
+    --tile-edge: rgba(255,226,122,0.20);
+  }
+  [data-theme="highcontrast"]{
     --bg: #000000; --bg-panel: #101010; --bg-panel-2: #1a1a1a;
     --accent: #ffd400; --accent-ink: #000000;
     --text: #ffffff; --muted: #cccccc; --border: #444444; --danger: #ff4040;
@@ -160,8 +219,39 @@
     display:flex; align-items:center; justify-content:center;
     z-index: 5;
   }
-  #screensaver video{
+  /* PARKED = completely out of the render, not merely covered up.
+     The menu is opaque and covers the whole screen, so while it is open the
+     logo behind it is invisible — but a browser does not know that. A video
+     back there goes on decoding thirty frames a second, and an animation goes
+     on animating, all of it thrown away, all of it taken from the very work
+     the menu is trying to do while a teacher moves the cursor. display:none
+     stops both dead. It is the same reason the tiles stopped stuttering: on
+     this hardware, the fix is nearly always to stop doing invisible work. */
+  #screensaver.parked{ display:none; }
+  #screensaver video, #screensaver img{
     width:100%; height:100%; object-fit: cover;
+  }
+  /* BURN-IN. A logo held perfectly still on the same pixels for four hours
+     every Sunday is how a panel gets a permanent ghost of it — the real risk
+     with a still picture that a moving video never had. So the picture drifts
+     and breathes, very slowly, on a two-minute cycle: too slow for anyone in
+     the room to notice it moving, far too much movement for any one pixel to
+     hold the same colour. It is a transform, so the graphics chip does it for
+     nothing — unlike decoding video, it costs no measurable CPU. */
+  @keyframes ktv-drift{
+    0%   { transform: scale(1.06) translate(0, 0); }
+    25%  { transform: scale(1.06) translate(-1.1%, 0.7%); }
+    50%  { transform: scale(1.06) translate(0.9%, -0.9%); }
+    75%  { transform: scale(1.06) translate(1.1%, 0.8%); }
+    100% { transform: scale(1.06) translate(0, 0); }
+  }
+  #screensaverImage{
+    animation: ktv-drift 120s ease-in-out infinite;
+  }
+  /* Anyone who has asked their system not to animate things gets a still
+     picture; the slight burn-in risk is theirs to accept. */
+  @media (prefers-reduced-motion: reduce){
+    #screensaverImage{ animation: none; }
   }
   #screensaverFallback{
     display:none;
@@ -171,6 +261,89 @@
   #screensaverFallback .glyph{ font-size: 5rem; }
   #screensaverFallback h1{ font-size: clamp(2rem, 5vw, 3.5rem); margin:0; letter-spacing:1px; }
   #screensaverFallback p{ color:var(--muted); font-size:1.2rem; max-width:640px; margin:0; }
+
+  /* ---------- THEME PICKER ----------
+     Every card carries its own data-theme, so it paints itself in the colours
+     and pattern of the theme it is offering — the swatch IS the theme, not a
+     drawing of it. Moving the cursor also repaints the page behind the cards,
+     so a theme can be judged at full size before it is chosen. */
+  #themePicker{
+    position:fixed; inset:0; z-index:70;
+    background: var(--bg);
+    background-image: linear-gradient(var(--pattern-veil, transparent), var(--pattern-veil, transparent)),
+                      var(--menu-pattern, none),
+                      radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
+    background-repeat: no-repeat, repeat, no-repeat;
+    display:flex; flex-direction:column;
+    /* Same safe margins the menu uses — TVs crop the outer few percent of the
+       picture, and a card sliced in half is not a swatch. */
+    --tv-safe-x: 5;
+    --tv-safe-y: 7;
+    padding: max(48px, calc(var(--tv-safe-y) * 1vh))
+             max(48px, calc(var(--tv-safe-x) * 1vw))
+             max(24px, calc(var(--tv-safe-y) * 0.7vh));
+    gap:18px; overflow:hidden;
+  }
+  #themePicker.open{ display:flex; }
+  .tp-head h2{ margin:0; font-size: clamp(1.6rem, 3vw, 2.4rem); color:var(--text); letter-spacing:.5px; }
+  .tp-head p{ margin:6px 0 0; color:var(--muted); font-size: clamp(.95rem, 1.4vw, 1.15rem); }
+  .tp-grid{
+    flex:1 1 auto; min-height:0; display:grid;
+    grid-template-columns: repeat(var(--tp-cols, 5), 1fr);
+    /* Equal rows that share the height that actually exists, so the cards
+       fill the screen instead of huddling at the top of it — on a TV seen
+       from across a room, a bigger swatch is a more useful swatch. */
+    grid-auto-rows: minmax(0, 1fr);
+    gap:16px; overflow:hidden;
+  }
+  .tp-card{
+    position:relative; border-radius:16px; overflow:hidden; cursor:pointer;
+    border:3px solid var(--border);
+    background: var(--bg);
+    /* The veil is laid on TWICE here. At full size a pattern is texture; on a
+       card the size of a playing card it is clutter competing with the theme's
+       name. Doubling the wash keeps the motif recognisable and the name
+       readable, without either being redrawn per theme. */
+    background-image: linear-gradient(var(--pattern-veil, transparent), var(--pattern-veil, transparent)),
+                      linear-gradient(var(--pattern-veil, transparent), var(--pattern-veil, transparent)),
+                      var(--menu-pattern, none),
+                      radial-gradient(ellipse at top, var(--bg-panel-2), var(--bg) 70%);
+    background-repeat: no-repeat, no-repeat, repeat, no-repeat;
+    background-size: auto, auto, 118px 118px, auto;
+    display:flex; flex-direction:column; justify-content:space-between; gap:10px; padding:14px;
+    transition: transform .12s ease;
+  }
+  /* The selection ring is deliberately NOT the card's own theme colour.
+     Each card paints itself in the theme it offers, so a theme-coloured ring
+     would be a different colour on every card — and on the quieter ones it
+     would disappear into the card entirely. One fixed high-contrast ring,
+     white against a dark core, reads instantly on every card from the back of
+     a classroom, which is the only job it has. */
+  .tp-card::before{
+    content:''; position:absolute; inset:0; border-radius:inherit;
+    box-shadow: 0 0 0 4px #ffffff, 0 0 0 8px rgba(0,0,0,.72), 0 12px 30px rgba(0,0,0,.45);
+    opacity:0; transition:opacity .12s ease; pointer-events:none;
+  }
+  .tp-card.focused{ transform: scale(1.04); }
+  .tp-card.focused::before{ opacity:1; }
+  .tp-name{
+    font-family:'Fredoka', sans-serif; font-weight:600;
+    font-size: clamp(1rem, 1.6vw, 1.4rem); color:var(--text); line-height:1.1;
+    flex:none;
+  }
+  .tp-tiles{ display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:8px; flex:1 1 auto; min-height:0; }
+  .tp-tile{
+    min-height:0; border-radius:12px;
+    background: linear-gradient(160deg, var(--bg-panel), var(--bg-panel-2));
+    border:2px solid var(--border);
+  }
+  .tp-tile.lead{ border-color: var(--accent); background: linear-gradient(160deg, var(--bg-panel-2), var(--bg-panel)); }
+  .tp-current{
+    position:absolute; top:10px; right:10px;
+    font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; font-weight:700;
+    background: var(--accent); color: var(--accent-ink);
+    padding:3px 7px; border-radius:999px;
+  }
 
   /* ---------- MENU LAYER ---------- */
   #menu{
@@ -289,10 +462,37 @@
     color: var(--text);
     cursor: pointer;
     text-align:center;
-    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+    /* ONLY transform is animated, and that is deliberate.
+       This used to animate box-shadow and the gradient background as well,
+       and on the TVs it visibly stuttered every time the cursor moved. The
+       reason is that a browser can slide, scale and fade a layer on the
+       graphics chip for almost nothing, but a changing shadow or gradient
+       has to be REDRAWN, pixel by pixel, every frame — and it happens on two
+       tiles at once, the one being left and the one being landed on. On a
+       desktop that is invisible; on a £25 streaming stick it is the lag.
+       The glow now lives on a pseudo-element whose opacity is faded instead,
+       which the graphics chip handles for free, and the border and
+       background switch instantly (during a 120ms zoom nobody can tell). */
+    transition: transform .12s ease;
     box-shadow: 0 14px 30px rgba(0,0,0,0.35);
   }
-  .btn .icon{ font-size: clamp(3.4rem, 6vw, 5.2rem); line-height:1; filter: drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
+  /* The focus glow, as its own layer purely so it can be faded rather than
+     repainted. No background of its own — a shadow draws outside the box, so
+     this never covers the thumbnail or the title. */
+  .btn::before{
+    content:'';
+    position:absolute; inset:0;
+    border-radius: inherit;
+    box-shadow: var(--focus-ring), 0 18px 34px rgba(0,0,0,0.45);
+    opacity:0;
+    transition: opacity .12s ease;
+    pointer-events:none;
+  }
+  .btn.focused::before{ opacity:1; }
+  /* text-shadow, not filter: drop-shadow. They look the same here, but a
+     filter forces the whole tile through an extra per-pixel pass on every
+     paint, eleven tiles at a time, on hardware that has little to spare. */
+  .btn .icon{ font-size: clamp(3.4rem, 6vw, 5.2rem); line-height:1; text-shadow: 0 4px 10px rgba(0,0,0,.4); }
   .btn .label{ font-family:'Fredoka', sans-serif; font-weight:600; font-size: clamp(1.5rem, 2.4vw, 2rem); line-height:1.15; }
   .btn:hover{ border-color: var(--btn-color); }
   .btn.focused{
@@ -304,7 +504,7 @@
     border-color: var(--accent);
     background: linear-gradient(160deg, var(--bg-panel-2), var(--bg-panel));
     transform: scale(1.045);
-    box-shadow: var(--focus-ring), 0 18px 34px rgba(0,0,0,0.45);
+    /* the glow is on .btn::before above, so it can fade instead of repaint */
   }
   .btn:active{ transform: scale(0.98); }
   /* Folder buttons ("Week 1", "Week 2") open a sub-list instead of playing a
@@ -524,12 +724,33 @@
 
   <!-- SCREENSAVER (default resting state) -->
   <div id="screensaver">
-    <video id="screensaverVideo" autoplay loop playsinline></video>
+    <!-- The logo is USUALLY a picture now. A picture beats a looping video
+         here on every count: it appears at once, it downloads once and then
+         costs nothing, and — the part that isn't obvious — it stops the TV
+         decoding video frames forever in the background, which is work a
+         £25 streaming stick has to take away from something else. A video
+         still works if one is used; the app works out which it has. -->
+    <img id="screensaverImage" alt="" hidden>
+    <video id="screensaverVideo" autoplay loop playsinline hidden></video>
+    <!-- The songs play from here, separately from the logo loop. Keeping them
+         apart is what lets the logo be a few seconds long (so it appears at
+         once and then costs nothing) while the music stays as varied as you
+         like. -->
+    <audio id="screensaverMusic" preload="none"></audio>
     <div id="screensaverFallback">
       <div class="glyph">✝️</div>
       <h1 class="display-font" id="fallbackTitle">Kids Ministry</h1>
-      <p>Add a file named <code>screensaver.mp4</code> next to this page to play your logo loop here.</p>
+      <p>Put your logo picture in Drive and paste its ID into <code>SCREENSAVER_FILE_ID</code> to show it here.</p>
     </div>
+  </div>
+
+  <!-- THEME PICKER. Opened from the screensaver with two LEFT presses. -->
+  <div id="themePicker" hidden>
+    <div class="tp-head">
+      <h2 class="display-font">Pick a look for this TV</h2>
+      <p>Arrows to browse · OK to keep it · Back to leave it as it was</p>
+    </div>
+    <div class="tp-grid" id="tpGrid"></div>
   </div>
 
   <!-- MENU (button grid) -->
@@ -560,7 +781,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-06c";
+const KTV_BUILD = "2026-09-06i";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
@@ -581,6 +802,15 @@ const CONFIG = {
   // If a teacher opens a video and walks away, automatically return to the
   // screensaver after this many minutes of no interaction. Set to 0 to disable.
   IDLE_RETURN_MINUTES: 45,
+
+  // How long the BUTTON MENU may sit untouched before the TV drops back to
+  // the logo. This exists because of a real fault: the menu used to cancel
+  // the idle timer and never restart it, so the moment a lesson video ended
+  // the TV returned to the menu and stayed there — for the rest of the
+  // morning, on every screen, with the logo loop gone and a static grid
+  // burning into the panel. Any remote press resets this, so it can only
+  // fire when the room has genuinely moved on.
+  MENU_IDLE_MINUTES: 3,
 
   // When a video reaches its end, go back to the list of videos automatically
   // instead of leaving a frozen last frame on the wall. Set to false if you'd
@@ -609,6 +839,12 @@ const CONFIG = {
   // Drive ever hiccuped, the TV would spend its time waiting on a host that
   // no longer exists instead of failing quickly.
   SCREENSAVER_URL: "",
+
+  // Is the screensaver a picture or a video? "auto" works it out by trying to
+  // load it as a picture first and falling back to video, so you never have to
+  // change this when you swap the file. Set "image" or "video" only if you
+  // ever want to force it.
+  SCREENSAVER_KIND: "auto",
 
   // ------------------------------------------------------------------
   // GOOGLE API KEY — the single most important setting on this page.
@@ -641,7 +877,7 @@ const CONFIG = {
   // this in, the screensaver streams from Drive too (free, same as above)
   // and SCREENSAVER_URL is only used as a backup. Leave blank to keep using
   // SCREENSAVER_URL alone.
-  SCREENSAVER_FILE_ID: "1MPfnPgmegbEedD3Nb5Mq_1My0VVCCUay",
+  SCREENSAVER_FILE_ID: "1cfdtn210BFAnyio_eIQc2CqyydzRrrSc",
 
   // Optional safety net, and the answer if the API key above ever stops
   // being an option. This is the address of a tiny free Cloudflare Worker
@@ -679,6 +915,7 @@ const ROOM = getRoomParam();
 
 const screensaverEl = document.getElementById('screensaver');
 const screensaverVideo = document.getElementById('screensaverVideo');
+const screensaverImage = document.getElementById('screensaverImage');
 const screensaverFallback = document.getElementById('screensaverFallback');
 const menuEl = document.getElementById('menu');
 const buttonGrid = document.getElementById('buttonGrid');
@@ -695,6 +932,9 @@ buttonGrid.style.setProperty('--cols', CONFIG.GRID_COLUMNS);
 document.title = CONFIG.CHURCH_NAME + (roomLabel ? ' — ' + roomLabel : '') + ' TV';
 
 let buttons = [];          // parsed sheet rows for the current room (videos only, each may carry a .group)
+// What the grid was last drawn from, so a five-minute refresh that changes
+// nothing does not redraw it and throw away where the cursor was sitting.
+let lastRenderSignature = '';
 let visibleItems = [];     // what's actually on screen right now: a mix of folder buttons and video buttons
 let activeGroup = null;    // null = showing the root menu; a string = inside that week/folder's sub-list
 // WHICH ROOM'S copy of that folder we are inside.
@@ -741,22 +981,70 @@ function screensaverSources(){
   return list;
 }
 
+// Whether the logo turned out to be a picture. Nothing else in the page needs
+// to care, but the sound handling does: a picture has no audio of its own, so
+// the songs become the only thing that can make a noise.
+let screensaverIsImage = false;
+
 (function initScreensaver(){
   const sources = screensaverSources();
-  let i = 0;
+  if (!sources.length) { showScreensaverFallback(); return; }
 
-  function tryNext(){
-    if (i >= sources.length) { showScreensaverFallback(); return; }
-    const s = sources[i];
-    i++;
-    if (s.crossOrigin) screensaverVideo.setAttribute('crossorigin', s.crossOrigin);
-    else screensaverVideo.removeAttribute('crossorigin');
-    screensaverVideo.src = s.url;
-    screensaverVideo.load();
-    tryPlay();
+  const kind = String(CONFIG.SCREENSAVER_KIND || 'auto').toLowerCase();
+
+  // PICTURE FIRST, unless told otherwise.
+  //
+  // There is no way to tell from a Drive file ID alone whether it points at a
+  // .jpg or an .mp4, and asking Google first would cost a whole extra round
+  // trip before anything could appear. So we simply try to load it as a
+  // picture: a browser decides that in the first few bytes, and if it isn't
+  // one it fails almost immediately and we hand the same address to the video
+  // element instead. Whichever kind of file gets uploaded, it just works.
+  function tryImage(i){
+    if (kind === 'video' || i >= sources.length) { startVideo(0); return; }
+    const probe = new Image();
+    if (sources[i].crossOrigin) probe.crossOrigin = sources[i].crossOrigin;
+    probe.onload = () => {
+      screensaverIsImage = true;
+      // IMPORTANT: the probe deliberately uses the RAW file bytes, not
+      // Google's image CDN. The CDN happily returns a poster frame for a
+      // VIDEO, so probing it would call every video screensaver a picture and
+      // freeze it on one frame. The raw bytes are the only honest test.
+      // Having established it really is a picture, display it from the CDN,
+      // which is faster and does not rate-limit with ten TVs asking at once.
+      const id = (CONFIG.SCREENSAVER_FILE_ID || '').trim();
+      const cdn = id ? 'https://lh3.googleusercontent.com/d/' + encodeURIComponent(id) + '=w1920' : '';
+      screensaverImage.onerror = () => { screensaverImage.onerror = null; screensaverImage.src = sources[i].url; };
+      screensaverImage.src = cdn || sources[i].url;
+      screensaverImage.hidden = false;
+      screensaverVideo.hidden = true;
+      // A picture cannot make a sound, so the logo video must never be asked
+      // to; the songs own the audio from here.
+      try { screensaverVideo.removeAttribute('src'); screensaverVideo.load(); } catch (e) {}
+    };
+    probe.onerror = () => {
+      if (kind === 'image') { tryImage(i + 1); return; }   // forced: keep trying pictures
+      startVideo(0);                                        // otherwise it must be a video
+    };
+    probe.src = sources[i].url;
   }
 
-  function tryPlay(){
+  function startVideo(i){
+    if (i >= sources.length) { showScreensaverFallback(); return; }
+    screensaverIsImage = false;
+    screensaverVideo.hidden = false;
+    screensaverImage.hidden = true;
+    const s = sources[i];
+    if (s.crossOrigin) screensaverVideo.setAttribute('crossorigin', s.crossOrigin);
+    else screensaverVideo.removeAttribute('crossorigin');
+    // Only while we are still choosing an address. Left attached, a single
+    // hiccup hours later would walk off the end of the list and replace the
+    // logo with the "add a screensaver" card for the rest of the day, with
+    // nothing anywhere to put it back.
+    screensaverVideo.onerror = () => { if (screensaverVideo.readyState === 0) startVideo(i + 1); };
+    screensaverVideo.addEventListener('playing', () => { screensaverVideo.onerror = null; }, { once: true });
+    screensaverVideo.src = s.url;
+    screensaverVideo.load();
     screensaverVideo.play().catch(() => {
       // Autoplay-with-sound was blocked by the browser. Fall back to
       // muted autoplay so at least the picture loops; a single tap
@@ -766,12 +1054,12 @@ function screensaverSources(){
     });
   }
 
-  screensaverVideo.addEventListener('error', tryNext);
   screensaverVideo.muted = false;
-  tryNext();
+  tryImage(0);
 })();
 
 function showScreensaverFallback(){
+  screensaverImage.hidden = true;
   screensaverVideo.style.display = 'none';
   screensaverFallback.style.display = 'flex';
 }
@@ -798,11 +1086,27 @@ function primeScreensaverOnFirstPress(){
     screensaverVideo.muted = false;
     screensaverVideo.play().catch(() => {});
   }
+  // Browsers refuse to start sound until a real button has been pressed, and
+  // the songs are subject to that rule just as the video was.
+  startMusic();
   document.removeEventListener('keydown', primeScreensaverOnFirstPress, true);
   document.removeEventListener('click', primeScreensaverOnFirstPress, true);
 }
 document.addEventListener('keydown', primeScreensaverOnFirstPress, true);
 document.addEventListener('click', primeScreensaverOnFirstPress, true);
+
+/* One place where a freshly loaded list of rows is split into the two things
+   it actually contains: tiles for the grid, and songs for the screensaver.
+   Every path that loads rows — a live sync, a cached list, a boot with the
+   Wi-Fi still down — goes through here, so none of them can drift apart. */
+function applyRows(rows){
+  // A teacher pressing a tile expects something to appear on the screen, so
+  // an audio file must never become a button — it would just be a black
+  // rectangle with sound.
+  const isSong = b => String(b.type || '').indexOf('audio/') === 0;
+  setMusicTracks(rows.filter(isSong));
+  buttons = rows.filter(b => !isSong(b));
+}
 
 /* ---------------------- CSV loading ---------------------- */
 function parseCSV(text){
@@ -882,11 +1186,19 @@ async function loadConfigFromSheet(){
       // 250MB video legitimately needs longer than a 20MB one before we are
       // willing to call it broken. Blank on older sheets, which is fine —
       // the code falls back to its floor.
-      sizeMb: Math.max(0, Math.round(parseFloat(r[7]) || 0)),
+      // Strictly numeric, for the same reason as Minutes below: a sheet whose
+      // columns have shifted could otherwise put a date like "9/6/2026" here,
+      // which parseFloat happily reads as 9 — and a 9MB estimate would cut
+      // every video's patience budget to almost nothing.
+      sizeMb: /^\s*\d+(\.\d+)?\s*$/.test(String(r[7] || '')) ? Math.max(0, Math.round(parseFloat(r[7]))) : 0,
       // How many minutes long the video is. This — not the file size — is
       // what decides how long the TV should wait before it is willing to call
       // a video broken. Blank on older sheets; the code estimates instead.
-      minutes: Math.max(0, parseFloat(r[8]) || 0)
+      // Only trust a cell that is PURELY a number. On a sheet made before the
+      // Minutes column existed, position 9 holds the "Last Synced" stamp, and
+      // a loose parseFloat on something like "6 Sep" would read it as a
+      // 6-minute video and cut the patience budget to nothing.
+      minutes: /^\s*\d+(\.\d+)?\s*$/.test(String(r[8] || '')) ? Math.max(0, parseFloat(r[8])) : 0
     })).filter(b => b.label && b.fileId);
 
     if (!parsedAll.length) throw new Error('No valid rows found (check Label + Drive link columns)');
@@ -901,17 +1213,30 @@ async function loadConfigFromSheet(){
         : 'No valid rows found (check Label + Drive link columns)');
     }
 
-    buttons = parsed;
+    applyRows(parsed);
     forgetWarmFailures();   // a new list deserves a clean slate
     // If the folder/week the teacher currently has open got renamed or
     // removed in this sync, don't strand them on a dead sub-list — fall
     // back to the main menu next render.
     if (activeGroup && !buttons.some(b => b.group === activeGroup && (b.room || '') === (activeGroupRoom || ''))) { activeGroup = null; activeGroupRoom = null; }
-    try { localStorage.setItem('ktv_last_good_config', JSON.stringify(buttons)); } catch(e) {}
+    // Save the whole list, songs included — a TV that starts up before the
+    // Wi-Fi is awake should come back with its music as well as its buttons.
+    try { localStorage.setItem('ktv_last_good_config', JSON.stringify(parsed)); } catch(e) {}
     loadThumbnailsUpFront(buttons);
-    renderButtons();
-    updateMenuTitle();
-    updateBackButtonLabel();
+    // ONLY REDRAW IF SOMETHING ACTUALLY CHANGED.
+    //
+    // This runs every five minutes, all morning. Redrawing unconditionally
+    // meant renderButtons() reset the cursor to the first tile — so a teacher
+    // who had arrowed across to "Week 3 · Bible Story" and pressed OK a
+    // moment after a refresh landed would start the wrong video in front of
+    // the class. Roughly fifty chances to do that over a morning.
+    const signature = JSON.stringify(buttons.map(x => [x.label, x.fileId, x.group, x.room, x.type]));
+    if (signature !== lastRenderSignature) {
+      lastRenderSignature = signature;
+      renderButtons();
+      updateMenuTitle();
+      updateBackButtonLabel();
+    }
     setStatus(true);
   } catch (err) {
     console.warn('Sheet load failed, using last known good config:', err);
@@ -920,7 +1245,7 @@ async function loadConfigFromSheet(){
       try {
         const cached = JSON.parse(localStorage.getItem('ktv_last_good_config') || 'null');
         if (cached && cached.length) {
-          buttons = cached;
+          applyRows(cached);
           if (activeGroup && !buttons.some(b => b.group === activeGroup && (b.room || '') === (activeGroupRoom || ''))) { activeGroup = null; activeGroupRoom = null; }
           loadThumbnailsUpFront(buttons);
           renderButtons();
@@ -1071,9 +1396,26 @@ function fitGrid(){
 
 // A TV can report its size late, and Fully Kiosk changes it when it goes
 // full-screen, so re-measure whenever the window changes.
-window.addEventListener('resize', () => { try { fitGrid(); } catch (e) {} });
+window.addEventListener('resize', () => {
+  try { fitGrid(); } catch (e) {}
+  // A TV can report its size late, and the picker's column count is worked
+  // out from that size — so re-apply it rather than leaving cards clipped.
+  try { if (tpOpen) { tpGrid.style.setProperty('--tp-cols', tpColumns()); tpApplyFocus(); } } catch (e) {}
+});
+
+// A stable name for a tile, so the cursor can be put back on the same one
+// after a redraw even though the objects themselves are rebuilt.
+function tileKey(it){
+  if (!it) return '';
+  if (it.kind === 'screensaver') return 'screensaver';
+  if (it.kind === 'folder') return 'folder:' + (it.room || '') + ':' + it.name;
+  return 'file:' + ((it.data && it.data.fileId) || '');
+}
+let keepFocusLabel = null;
 
 function renderButtons(){
+  // Remember what the cursor was on before the grid is thrown away.
+  keepFocusLabel = tileKey(visibleItems[focusedIndex]);
   const items = computeVisibleItems();
   visibleItems = items;
 
@@ -1116,7 +1458,12 @@ function renderButtons(){
   });
   fitGrid();                                         // size the tiles to this screen
   requestAnimationFrame(fitGrid);                    // and again once layout has settled
-  focusedIndex = 0;
+  // Keep the cursor where it was if that tile still exists — a redraw should
+  // never move a teacher's selection out from under them.
+  focusedIndex = (keepFocusLabel && items.findIndex(it => tileKey(it) === keepFocusLabel) >= 0)
+    ? items.findIndex(it => tileKey(it) === keepFocusLabel)
+    : 0;
+  keepFocusLabel = null;
   applyFocusVisual();
   resumeWarming();          // start fetching indexes for what is now on screen
 }
@@ -1198,27 +1545,50 @@ function escapeHtml(s){
 const thumbStatus = new Map();      // fileId -> 'loading' | 'loaded' | 'failed'
 const thumbWaiters = new Map();     // fileId -> [callback, ...] still waiting on a first-time load
 
+// TWO addresses for the same picture, in order.
+//
+// lh3.googleusercontent.com is Google's own image service — the one Photos
+// and Docs serve pictures from. It is faster than the Drive endpoint and does
+// not rate-limit the way `drive.google.com/thumbnail` does when ten TVs ask
+// for the same thing at once (which is precisely our situation). Verified
+// against this church's own Drive file, anonymously, with a deliberately
+// corrupted ID as a control to prove the success was real.
+//
+// The Drive endpoint stays as the fallback: it is what has been working, and
+// nothing here is worth a regression.
+function thumbnailUrls(fileId){
+  const id = encodeURIComponent(fileId);
+  return [
+    'https://lh3.googleusercontent.com/d/' + id + '=w800',
+    'https://drive.google.com/thumbnail?id=' + id + '&sz=w800'
+  ];
+}
+// Which address actually worked for a given file, so the tile paints with the
+// same one that loaded rather than starting the hunt over.
+const thumbChosen = new Map();
 function thumbnailUrl(fileId){
-  return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(fileId) + '&sz=w800';
+  return thumbChosen.get(fileId) || thumbnailUrls(fileId)[0];
 }
 
 function preloadThumbnail(fileId){
   if (thumbStatus.has(fileId)) return; // already loaded, failed, or already loading — nothing to do
   thumbStatus.set(fileId, 'loading');
-  const img = new Image();
-  img.onload = () => {
-    thumbStatus.set(fileId, 'loaded');
+  const urls = thumbnailUrls(fileId);
+  const settle = (state) => {
+    thumbStatus.set(fileId, state);
     const waiters = thumbWaiters.get(fileId) || [];
     thumbWaiters.delete(fileId);
-    waiters.forEach(cb => cb('loaded'));
+    waiters.forEach(cb => cb(state));
   };
-  img.onerror = () => {
-    thumbStatus.set(fileId, 'failed');
-    const waiters = thumbWaiters.get(fileId) || [];
-    thumbWaiters.delete(fileId);
-    waiters.forEach(cb => cb('failed'));
+  const attempt = (i) => {
+    if (i >= urls.length) { settle('failed'); return; }
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => { thumbChosen.set(fileId, urls[i]); settle('loaded'); };
+    img.onerror = () => attempt(i + 1);   // that address didn't work — try the other
+    img.src = urls[i];
   };
-  img.src = thumbnailUrl(fileId);
+  attempt(0);
 }
 
 // Kicks off loading every known video's thumbnail in the background the
@@ -1254,41 +1624,230 @@ function attachThumbnail(btn, fileId){
   preloadThumbnail(fileId); // safety net — normally already kicked off by loadThumbnailsUpFront
 }
 
+/* ==================== THE SCREENSAVER MUSIC ====================
+
+   WHY THE MUSIC IS NOT PART OF THE LOGO VIDEO ANY MORE
+   ----------------------------------------------------
+   It used to be one two-hour MP4: logo picture and two hours of songs baked
+   together. Two hours of frames means a 7.5MB index, and nothing appears on
+   screen until that whole index has downloaded — about thirteen seconds of
+   black screen every time a TV starts up. The length was never about the
+   picture; it was about not making the leaders listen to the same four songs
+   all morning.
+
+   So the two are separated. The logo is a short silent loop, which appears
+   almost instantly and then sits in the TV's cache costing nothing. The songs
+   are ordinary music files played one after another from here.
+
+   It is also better than what it replaced, not just faster:
+     • the order is SHUFFLED, so it differs every service, where a two-hour
+       video always played the same songs in the same order
+     • adding or dropping a song is dropping a file in a Drive folder — no
+       two-hour video to re-export
+
+   Songs come from the same Sheet as everything else: any row whose type is
+   audio is music, never a button. If nothing is there, the logo video keeps
+   its own sound exactly as before, so this can't leave a room in silence.
+   ============================================================== */
+const screensaverMusic = document.getElementById('screensaverMusic');
+let musicTracks = [];      // shuffled song list
+let musicIndex = 0;
+let musicStarted = false;
+let musicFailures = 0;
+
+// Fisher-Yates. Reshuffled at the end of every pass so a long morning does
+// not settle into the same running order after the first time through.
+function shuffleTracks(list){
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+  }
+  return out;
+}
+
+function haveMusic(){ return musicTracks.length > 0; }
+
+// Whichever element is actually carrying sound right now. With songs loaded
+// that is the music; without them it is the logo video, as it always was.
+function soundEl(){
+  if (haveMusic()) return screensaverMusic;
+  // A picture logo makes no sound at all, so there is nothing to fade on the
+  // video element — point at the (silent, empty) music element instead, where
+  // every volume and play() call is a harmless no-op.
+  if (screensaverIsImage) return screensaverMusic;
+  return screensaverVideo;
+}
+
+// What the song list looked like last time, so we can tell a genuine change
+// from the sheet simply being re-read.
+let musicSignature = '';
+
+function setMusicTracks(rows){
+  const songs = rows.filter(b => b.fileId && String(b.type || '').indexOf('audio/') === 0);
+  const signature = songs.map(s => s.fileId).sort().join(',');
+
+  if (!songs.length) {
+    musicTracks = [];
+    musicSignature = '';
+    // The logo video was muted so it couldn't talk over the songs. With no
+    // songs left there is nothing to talk over, and leaving it muted would
+    // mean a completely silent room — no music AND no logo sound — if the
+    // music folder ever stops syncing.
+    if (!screensaverIsImage) screensaverVideo.muted = false;
+    return;
+  }
+
+  // A picture logo makes no sound, and a video logo must not compete.
+  screensaverVideo.muted = true;
+
+  // THE SHEET IS RE-READ EVERY FIVE MINUTES, ALL MORNING.
+  // Rebuilding the playlist on every read meant the worship song playing in
+  // the room was cut off mid-verse and restarted from a random track, twelve
+  // times an hour, on all ten TVs — almost no song ever reached its own end.
+  // Only rebuild when the songs have actually changed.
+  if (signature === musicSignature && musicTracks.length) return;
+
+  musicSignature = signature;
+  musicTracks = shuffleTracks(songs);
+  musicIndex = 0;
+  musicSourceIndex = 0;
+  musicFailures = 0;
+  // Songs have arrived (or changed). If somebody has already pressed a key —
+  // which is what browsers require before any sound may start — begin now.
+  if (musicStarted || userHasPressedSomething) { musicStarted = true; playCurrentTrack(); }
+}
+
+// Which delivery address we are on for the song currently playing. Songs get
+// the same courtesy videos do: if the first way of fetching one doesn't work,
+// try the other before writing the song off. Dropping a perfectly good song
+// because one address had a bad moment is the kind of small wrongness nobody
+// ever reports and everybody notices.
+let musicSourceIndex = 0;
+
+function playCurrentTrack(){
+  if (!haveMusic()) return;
+  if (musicIndex >= musicTracks.length) {
+    musicIndex = 0;
+    musicSourceIndex = 0;
+    musicTracks = shuffleTracks(musicTracks);   // a fresh order each pass
+  }
+  const track = musicTracks[musicIndex];
+  const sources = audioSources(track.fileId);
+  if (!sources.length || musicSourceIndex >= sources.length) { nextTrack(); return; }
+  screensaverMusic.src = sources[musicSourceIndex].url;
+  screensaverMusic.load();
+  screensaverMusic.play().catch(() => {});
+}
+
+function nextTrack(){
+  if (!haveMusic()) return;
+  musicIndex++;
+  musicSourceIndex = 0;
+  playCurrentTrack();
+}
+
+// Same song, its other address.
+function retryTrackOtherSource(){
+  musicSourceIndex++;
+  playCurrentTrack();
+}
+
+// Browsers will not let a page make a sound until a real button has been
+// pressed. This records that it has happened, so that songs arriving LATER —
+// the sheet is fetched over the network and often lands after the first key
+// press — can start straight away instead of waiting for a press that has
+// already been and gone. Without it, a TV whose sheet was still loading when
+// someone touched the remote stayed silent for the whole morning.
+let userHasPressedSomething = false;
+
+function startMusic(){
+  userHasPressedSomething = true;
+  if (!haveMusic() || musicStarted) return;
+  musicStarted = true;
+  screensaverMusic.volume = 1;
+  playCurrentTrack();
+}
+
+screensaverMusic.addEventListener('ended', () => { musicFailures = 0; nextTrack(); });
+// Any successful start clears the failure count too, so one bad patch of
+// Wi-Fi cannot slowly use up the budget over a long morning.
+screensaverMusic.addEventListener('playing', () => { musicFailures = 0; });
+screensaverMusic.addEventListener('error', () => {
+  // One bad file must not end the music for the morning. Try this song's
+  // other address first, then move on — but if everything fails, stop rather
+  // than spinning through the list forever hammering Google.
+  musicFailures++;
+  // Stop hammering Google if everything is failing — but musicStarted stays
+  // true, so the next sheet refresh (which resets musicFailures) can bring
+  // the music back rather than leaving the room silent for the morning.
+  if (musicFailures > musicTracks.length * 2 + 2) return;
+  const sources = audioSources((musicTracks[musicIndex] || {}).fileId || '');
+  if (musicSourceIndex + 1 < sources.length) { retryTrackOtherSource(); return; }
+  nextTrack();
+});
+
 /* ---------------------- Screensaver audio fade ---------------------- */
 // Fades the screensaver's volume smoothly instead of an abrupt cut/jump,
 // so it ducks out when a video is picked and eases back in on return.
 let fadeTimer = null;
 function fadeScreensaverVolume(target, duration, onDone){
   if (fadeTimer) clearInterval(fadeTimer);
+  const el = soundEl();
   const steps = 20;
-  const start = screensaverVideo.volume;
+  const start = el.volume;
   const delta = (target - start) / steps;
   let i = 0;
   fadeTimer = setInterval(() => {
     i++;
-    screensaverVideo.volume = Math.max(0, Math.min(1, start + delta * i));
+    el.volume = Math.max(0, Math.min(1, start + delta * i));
     if (i >= steps) {
       clearInterval(fadeTimer);
       fadeTimer = null;
-      screensaverVideo.volume = target;
+      el.volume = target;
       if (onDone) onDone();
     }
   }, duration / steps);
 }
+// Take the logo layer out of the render entirely. The songs are a separate
+// element outside it, so the music plays on undisturbed — it is only the
+// picture, which nobody can see right now, that stops.
+function parkScreensaver(){
+  screensaverEl.classList.add('parked');
+  // A video would otherwise keep decoding while hidden on some builds.
+  if (!screensaverIsImage) { try { screensaverVideo.pause(); } catch (e) {} }
+}
+
 function duckScreensaver(){
-  if (screensaverVideo.paused || screensaverVideo.muted) { screensaverVideo.pause(); return; }
-  fadeScreensaverVolume(0, 500, () => screensaverVideo.pause());
+  const el = soundEl();
+  // The logo picture keeps looping behind the menu either way; it is only
+  // the sound that gets out of the way.
+  if (el.paused || el.muted) { el.pause(); return; }
+  fadeScreensaverVolume(0, 500, () => el.pause());
 }
 function unduckScreensaver(){
-  screensaverVideo.volume = 0;
-  screensaverVideo.play().catch(() => {});
+  const el = soundEl();
+  el.volume = 0;
+  // If the playlist has no address loaded at all (first run, or it gave up
+  // while everything was failing), start it rather than resuming nothing.
+  if (haveMusic() && musicStarted && !screensaverMusic.getAttribute('src')) playCurrentTrack();
+  el.play().catch(() => {});
   fadeScreensaverVolume(1, 600);
+  // The logo loop is silent when there are songs, so it is safe to just keep
+  // it running whatever happens to the sound.
+  // The logo picture needs nothing; a logo VIDEO was paused while parked and
+  // has to be started again.
+  if (!screensaverIsImage) screensaverVideo.play().catch(() => {});
 }
 
 /* ---------------------- View transitions ---------------------- */
 function showScreensaver(){
+  // The idle timer can fire while someone is still choosing a look. Put back
+  // whatever was there rather than leaving a half-made choice on the wall.
+  try { closeThemePicker(false); } catch (e) {}
   pauseWarming();   // nothing on the menu is about to be pressed
   currentView = 'screensaver';
+  screensaverEl.classList.remove('parked');
   playerEl.classList.remove('is-paused');
   activeGroup = null; activeGroupRoom = null; // always wake up back at the main menu, not wherever a teacher left off
   menuEl.classList.remove('open');
@@ -1304,6 +1863,7 @@ function showScreensaver(){
 }
 
 function showMenu(){
+  try { closeThemePicker(false); } catch (e) {}
   currentView = 'menu';
   playerEl.classList.remove('is-paused');
   playerEl.classList.remove('open');
@@ -1312,11 +1872,16 @@ function showMenu(){
   clearPlayerTickers();
   playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
   menuEl.classList.add('open');
-  clearIdleTimer();
+  parkScreensaver();
   renderButtons();
   updateMenuTitle();
   updateBackButtonLabel();
   duckScreensaver();
+  // THE LOGO ALWAYS COMES BACK. Without this the menu is a dead end: it used
+  // to clear the idle timer and never set another, so a TV that reached the
+  // menu — which happens automatically every time a video finishes — stayed
+  // on the menu until someone touched it.
+  startMenuIdleTimer();
 }
 
 // Plays the video directly with our own <video> element instead of embedding
@@ -1495,10 +2060,24 @@ function imageSources(fileId){
   return list;
 }
 
+// Songs are fetched the same way pictures are — the API key first, the
+// site's own helper address as the fallback.
+function audioSources(fileId){
+  const id = encodeURIComponent(fileId);
+  const list = [];
+  const key = (CONFIG.GOOGLE_API_KEY || '').trim();
+  if (key) {
+    list.push({ name: 'google-direct-audio', url: 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key) });
+  }
+  list.push({ name: 'site-helper-audio', url: '/watch-video?id=' + id });
+  return list;
+}
+
 function showImage(b){
   pauseWarming();   // nothing on the menu is about to be pressed
   if (!b) return;
   currentView = 'player';
+  parkScreensaver();
   menuEl.classList.remove('open');
   playerFrameWrap.innerHTML =
     '<img id="playerImage" alt="">' +
@@ -1521,8 +2100,20 @@ function showImage(b){
     if (loading) loading.hidden = true;
   }
 
+  // A PICTURE NEEDS A CLOCK TOO.
+  //
+  // Videos have three. Pictures had none — the only way past the spinner was
+  // an `error` event, and a request that HANGS rather than fails never fires
+  // one. A memory verse could sit on "Loading picture…" indefinitely with the
+  // second address never tried. Ten seconds is generous: these are a couple
+  // of megabytes at most.
+  const IMAGE_TIMEOUT_MS = 10000;
+  let imageTimer = null;
+  function clearImageTimer(){ clearTimeout(imageTimer); imageTimer = null; }
+
   function tryNextImageSource(lastErrorDetail){
     if (myToken !== playAttemptToken) return; // superseded — a Back press or a new picture moved on already
+    clearImageTimer();
     if (sourceIndex >= sources.length) {
       showPlayerError(lastErrorDetail);
       return;
@@ -1530,10 +2121,15 @@ function showImage(b){
     const src = sources[sourceIndex];
     sourceIndex++;
     imgEl.src = src.url;
+    imageTimer = setTimeout(() => {
+      if (myToken !== playAttemptToken) return;
+      tryNextImageSource('no answer from ' + src.name + ' within ' + (IMAGE_TIMEOUT_MS/1000) + 's');
+    }, IMAGE_TIMEOUT_MS);
   }
 
   imgEl.addEventListener('load', () => {
     if (myToken !== playAttemptToken) return;
+    clearImageTimer();
     hideLoadingIndicator();
   });
   imgEl.addEventListener('error', () => {
@@ -1553,6 +2149,7 @@ function showImage(b){
 function playVideo(b){
   if (!b) return;
   currentView = 'player';
+  parkScreensaver();
   menuEl.classList.remove('open');
   // If the menu already fetched this video's index, take that element and put
   // it on screen — the index comes with it, so there is nothing to wait for.
@@ -1611,6 +2208,10 @@ function playVideo(b){
 
   let sawBytes = false;   // this source has produced real data
   let hasPlayed = false;  // playback actually started — never restart after this
+  // How many times we will quietly nudge a stuttering video back to life
+  // before admitting defeat. Each nudge costs nothing and buys 20 seconds.
+  const RESUME_ATTEMPTS = 3;
+  let resumeAttempts = 0;
 
   function clearPlayTimer(){ clearTimeout(playerLoadTimeout); playerLoadTimeout = null; }
 
@@ -1689,7 +2290,11 @@ function playVideo(b){
   // Older sheets have no Minutes column: fall back to estimating from size at
   // roughly 9MB per minute, which is what this curriculum's files run at.
   const minutes = Math.min(150, stated || (sizeMb / 9));
-  const METADATA_MS = Math.min(75000, 10000 + minutes * 1000);
+  // The floor is 20s, not 10s: with neither column filled in, `minutes` is 0,
+  // and a 10-second budget is one second after the first-byte clock stands
+  // down — which would accuse perfectly good large videos of being broken on
+  // any sheet that hasn't been re-synced yet.
+  const METADATA_MS = Math.min(75000, 20000 + minutes * 1000);
   let metadataTimeout = null;
   function clearMetadataTimer(){ clearTimeout(metadataTimeout); metadataTimeout = null; }
   function metadataClockRunning(){ return metadataTimeout !== null; }
@@ -1700,7 +2305,19 @@ function playVideo(b){
       metadataTimeout = null;
       if (myToken !== playAttemptToken) return;
       if (videoEl.readyState > 0) return;     // the browser knows the video — fine
-      if (!sawBytes || !looksUnstreamable()) return; // nothing arriving: the other clocks own this
+      // NOTHING GETS PAST THIS CLOCK. It used to step aside whenever no bytes
+      // had arrived, on the reasoning that the other clocks owned that case —
+      // but as the trace above showed, they could all end up deferring to one
+      // another and leaving a class watching a spinner. If this fires and the
+      // browser still knows nothing about the video, something is wrong
+      // whatever the cause, so this is the last word.
+      if (!sawBytes) {
+        // Never received a thing: that is a dead address, not a bad file.
+        tryNextSource('nothing at all arrived from ' + currentSourceName +
+                      ' within ' + Math.round(METADATA_MS/1000) + 's');
+        return;
+      }
+      if (!looksUnstreamable()) { tryNextSource('gave up waiting on ' + currentSourceName); return; }
       showPlayerError(
         'downloaded for ' + Math.round(METADATA_MS/1000) + 's from ' + currentSourceName +
           ' (' + (minutes ? (Math.round(minutes * 10) / 10) + ' min' : 'unknown length') +
@@ -1717,7 +2334,15 @@ function playVideo(b){
       if (sawBytes) return; // it's alive after all — the stall timer owns it now
       // Downloading hard, but the browser still knows nothing about the file:
       // don't call this source dead — the metadata clock above owns this case.
-      if (looksUnstreamable()) return;
+      //
+      // THE `sawBytes &&` HERE IS LOad-BEARING. Without it, a connection that
+      // is accepted but never sends a single byte — ten TVs hitting one API
+      // key, a wedged access point — falls between the two clocks: this one
+      // steps aside because the browser is "loading", and the metadata clock
+      // refuses it because no bytes ever arrived. Nobody fires, no other
+      // address is ever tried, and a class watches a spinner until the idle
+      // timer rescues them. The handover is only valid when data is flowing.
+      if (sawBytes && looksUnstreamable()) return;
       tryNextSource('no response from ' + currentSourceName + ' within ' + (FIRST_BYTE_MS/1000) + 's');
     }, FIRST_BYTE_MS);
   }
@@ -1769,7 +2394,23 @@ function playVideo(b){
     // Once a video has genuinely started playing, never yank it back to try
     // a different address — at that point any error is a real failure worth
     // showing, not something a different delivery method would fix.
-    if (hasPlayed) { showPlayerError(withFormatHint(lastErrorDetail)); return; }
+    // ALREADY PLAYING: this is a rebuffer, not a failure.
+    //
+    // A twenty-second Wi-Fi dip twenty minutes into a Bible story used to
+    // land here and tear the video down — src removed, download cancelled,
+    // "check that the file is shared" on the wall — for a video that would
+    // have recovered on its own a moment later. Nudge it instead, and only
+    // give up if nudging repeatedly gets us nowhere.
+    if (hasPlayed) {
+      if (resumeAttempts < RESUME_ATTEMPTS) {
+        resumeAttempts++;
+        videoEl.play().catch(() => {});
+        armStallTimer();
+        return;
+      }
+      showPlayerError(withFormatHint(lastErrorDetail) + ' · after ' + RESUME_ATTEMPTS + ' attempts to resume');
+      return;
+    }
 
     clearPlayTimer();
     if (sourceIndex >= sources.length) {
@@ -1886,8 +2527,33 @@ function playVideo(b){
   videoEl.addEventListener('waiting', () => {
     // Buffering mid-playback: legitimate, but start the quiet-too-long clock
     // so a video that never recovers doesn't sit frozen forever.
+    //
+    // THE `sawBytes` GUARD IS THE WHOLE POINT. Chrome fires `waiting` about
+    // three seconds in on ANY load, before a single byte has arrived — and
+    // arming the stall clock here quietly cancelled the nine-second
+    // first-byte clock that was the only thing watching for a connection
+    // that opens and then says nothing. Every later clock then deferred to
+    // another, and the spinner ran forever. Traced live: emptied, waiting,
+    // loadstart, stalled — and no progress event, ever.
     if (myToken !== playAttemptToken) return;
+    if (!sawBytes) return;   // nothing has arrived yet: the first-byte clock still owns this
     armStallTimer();
+  });
+  // The browser's own "I asked for data and none is coming" event. It is the
+  // most direct signal there is that a source is dead, and it was going
+  // unused: in the traced failure it fired at 6.1s while everything else sat
+  // waiting for timers that would never do anything.
+  const STALLED_GRACE_MS = 6000;
+  videoEl.addEventListener('stalled', () => {
+    if (myToken !== playAttemptToken) return;
+    if (sawBytes || hasPlayed) return;         // mid-download hiccup: the other clocks own it
+    if (videoEl.readyState > 0) return;        // it knows the video; not a dead source
+    // Chrome can fire `stalled` about three seconds into a perfectly healthy
+    // load. Giving a source at least six seconds to produce its first byte
+    // means a slow start is never mistaken for a dead connection — and the
+    // nine-second first-byte clock is still there behind this either way.
+    if (Date.now() - loadStartedAt < STALLED_GRACE_MS) return;
+    tryNextSource('no data at all from ' + currentSourceName + ' (the connection went quiet)');
   });
   videoEl.addEventListener('error', () => {
     if (myToken !== playAttemptToken) return;
@@ -2176,12 +2842,16 @@ function warmHolder(){
   return warmHolderEl;
 }
 
-function discardWarm(fileId){
+// `expected` guards against a stale caller destroying a NEWER element that
+// happens to share the same file id — see the note in warmNext's `done`.
+function discardWarm(fileId, expected){
   const el = warmPool.get(fileId);
+  if (expected && el && el !== expected) return;   // not ours any more: leave it alone
+  const victim = el || expected;
   warmPool.delete(fileId);
-  if (el && el.parentNode) {
-    try { el.removeAttribute('src'); el.load(); } catch (e) {}
-    el.parentNode.removeChild(el);
+  if (victim) {
+    try { victim.removeAttribute('src'); victim.load(); } catch (e) {}
+    if (victim.parentNode) victim.parentNode.removeChild(victim);
   }
 }
 
@@ -2201,10 +2871,12 @@ function pauseWarming(){
   clearTimeout(warmStartTimer);
   warmQueue = [];
   if (warmInFlight) {
-    // Half a downloaded index is worse than none: it would be taken later and
-    // look ready when it isn't.
-    discardWarm(warmInFlight.fileId);
+    // Close the attempt properly so its 30-second timer cannot come back
+    // later and act on a world that has moved on.
+    const inflight = warmInFlight;
     warmInFlight = null;
+    if (inflight.settle) inflight.settle(false);
+    else discardWarm(inflight.fileId, inflight.el);
   }
   warmBusy = false;
 }
@@ -2261,23 +2933,39 @@ function warmNext(){
   warmHolder().appendChild(el);
 
   warmBusy = true;
-  warmInFlight = { fileId: fileId, el: el };
+  warmInFlight = { fileId: fileId, el: el, settle: null };
   warmPool.set(fileId, el);
   trimWarmPool();
 
+  // ABANDONING AN ATTEMPT HAS TO SETTLE IT, NOT JUST WALK AWAY.
+  //
+  // This 30-second timer can only be cancelled from inside `done`. If the
+  // attempt was abandoned some other way — the teacher pressed the tile, or
+  // a lesson started and warming paused — the timer stayed armed and fired
+  // half a minute later against a world that had moved on: it freed
+  // `warmBusy` while a *different* warm-up was genuinely in flight (so two
+  // downloads then competed for the Wi-Fi), destroyed whatever element now
+  // held this file id, and blacklisted the file — which is to say it
+  // sabotaged precisely the tile the teacher was most likely to press.
+  // `warmInFlight` now carries its own settle function so every exit closes
+  // the attempt properly, and `discardWarm` is told which element is ours.
   let settled = false;
-  const done = (keep) => {
+  // `quiet` means "close this attempt but do not start another" — used when
+  // the player is taking this element, because a lesson is about to start and
+  // the very next thing that happens is warming being paused anyway.
+  const done = (keep, quiet) => {
     if (settled) return;
     settled = true;
     clearTimeout(timer);
     if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight = null;
     warmBusy = false;
-    if (!keep) { discardWarm(fileId); warmFailed.add(fileId); }
+    if (!keep) { discardWarm(fileId, el); warmFailed.add(fileId); }
     // One at a time, always: two background downloads would halve the speed
     // of the one the teacher is most likely to want.
-    if (!warmPaused) warmNext();
+    if (!quiet && !warmPaused) warmNext();
   };
   const timer = setTimeout(() => done(false), WARM_TIMEOUT_MS);
+  if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight.settle = done;
   el.addEventListener('loadedmetadata', () => done(true), { once: true });
   el.addEventListener('error', () => done(false), { once: true });
 
@@ -2291,7 +2979,15 @@ function takeWarmVideo(fileId){
   const el = warmPool.get(fileId);
   if (!el) return null;
   warmPool.delete(fileId);
-  if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight = null;
+  // Handing this element to the player ends its warm-up. Settle it first, or
+  // its timer fires half a minute later and tramples whatever has taken its
+  // place — including a fresh warm-up of the very same file.
+  if (warmInFlight && warmInFlight.fileId === fileId) {
+    const inflight = warmInFlight;
+    warmInFlight = null;
+    if (inflight.settle) inflight.settle(true, true);   // close it, start nothing
+    warmBusy = false;
+  }
   // A half-downloaded index is still a head start, so a still-loading element
   // is worth taking; only a broken or address-less one is thrown away.
   if (el.error || !el.getAttribute('src')) {
@@ -2381,6 +3077,73 @@ function checkForNewVersionAtScreensaver(){
 const START_LOG_MAX = 6;
 let startLog = [];
 
+/* CHECK EVERY FILE, FROM THE TELEVISION ITSELF.
+   A file that Mum has moved, renamed or un-shared looks perfectly fine in
+   Drive and perfectly fine in the Sheet; the only place it fails is on a
+   classroom wall, in front of children, on a Sunday. This asks the TV to
+   fetch the first two kilobytes of every single file in its list — enough to
+   prove the address answers, small enough that fifty-odd of them cost less
+   than one lesson video — and names anything that doesn't answer.
+   It runs where the problem would happen, on the same Wi-Fi, with the same
+   key, which is the whole point of it living here rather than in a script. */
+let fileCheckReport = '';
+let fileCheckRunning = false;
+let fileCheckAbort = null;
+
+function sourcesForRow(b){
+  const t = String(b.type || '');
+  if (t.indexOf('image/') === 0) return imageSources(b.fileId);
+  if (t.indexOf('audio/') === 0) return audioSources(b.fileId);
+  return orderedVideoSources(b.fileId);
+}
+
+async function checkEveryFile(){
+  if (fileCheckRunning) return;
+  const rows = buttons.concat(musicTracks).filter(b => b && b.fileId);
+  if (!rows.length) { fileCheckReport = 'FILE CHECK\n  nothing in the list to check'; return; }
+  fileCheckRunning = true;
+  fileCheckAbort = new AbortController();
+  const bad = [];
+  let done = 0;
+
+  const paint = () => {
+    fileCheckReport = 'FILE CHECK  ' + done + ' of ' + rows.length + ' checked' +
+      (bad.length ? '  ·  ' + bad.length + ' PROBLEM' + (bad.length > 1 ? 'S' : '') : '') +
+      (done < rows.length ? '  (working…)' : '') +
+      (bad.length ? '\n' + bad.map(x => '  ✗ ' + x).join('\n') : (done === rows.length ? '\n  every file answered — nothing to fix' : ''));
+    renderSpeedPanel();
+  };
+  paint();
+
+  for (const row of rows) {
+    if (!fileCheckRunning) break;
+    let ok = false, why = 'no answer';
+    const sources = sourcesForRow(row);
+    for (const src of sources) {
+      try {
+        const res = await fetch(src.url, {
+          headers: { Range: 'bytes=0-2047' }, cache: 'no-store', signal: fileCheckAbort.signal
+        });
+        if (res.ok || res.status === 206) { ok = true; break; }
+        why = 'server said ' + res.status;
+      } catch (e) {
+        if (e && e.name === 'AbortError') { fileCheckRunning = false; return; }
+        why = 'could not be reached';
+      }
+    }
+    if (!ok) bad.push(String(row.label || row.fileId).slice(0, 40) + '  (' + why + ')');
+    done++;
+    if (done % 3 === 0 || done === rows.length) paint();
+  }
+  fileCheckRunning = false;
+  paint();
+}
+
+function stopFileCheck(){
+  fileCheckRunning = false;
+  if (fileCheckAbort) { try { fileCheckAbort.abort(); } catch (e) {} fileCheckAbort = null; }
+}
+
 function noteStartTime(label, ms, wasWarm){
   startLog.unshift({ label: label || 'video', ms: ms, warm: !!wasWarm });
   if (startLog.length > START_LOG_MAX) startLog.length = START_LOG_MAX;
@@ -2401,6 +3164,8 @@ function speedPanel(){
 }
 
 function closeSpeedPanel(){
+  stopFileCheck();          // don't leave fifty requests running behind a closed screen
+  fileCheckReport = '';
   const el = document.getElementById('speedPanel');
   if (el && el.parentNode) el.parentNode.removeChild(el);
 }
@@ -2413,20 +3178,35 @@ function describeStarts(){
   ).join('\n');
 }
 
+// The panel's last measured figures, kept outside the function that produced
+// them so the file check can repaint the screen as it works without having to
+// re-run the speed test.
+let speedLineText = '  measuring…';
+let speedVerdictText = '';
+
+function renderSpeedPanel(){
+  const el = document.getElementById('speedPanel');
+  if (!el) return;
+  el.textContent =
+    'SPEED CHECK — First Kids TV\n' +
+    '===========================\n\n' +
+    'Build     ' + KTV_BUILD + '\n' +
+    'Room      ' + (ROOM || '(not set — this TV shows both rooms)') + '\n' +
+    'Videos    ' + buttons.length + ' in the list' +
+      (musicTracks.length ? '  ·  ' + musicTracks.length + ' songs' : '  ·  no songs yet') + '\n\n' +
+    'HOW FAST THIS TV PULLS VIDEO\n' + speedLineText + '\n\n' +
+    speedVerdictText + '\n\n' +
+    'RECENT LESSONS, TIME TO FIRST PICTURE\n' + describeStarts() + '\n\n' +
+    (fileCheckReport || 'Press OK to check every file in the list.') + '\n\n' +
+    'Press any key to close.';
+}
+
 async function measureSpeed(){
-  const el = speedPanel();
+  speedPanel();
   const first = buttons.find(b => b.fileId && mediaKind(b) === 'video');
-  const render = (speedLine, verdict) =>
-    el.textContent =
-      'SPEED CHECK — First Kids TV\n' +
-      '===========================\n\n' +
-      'Build     ' + KTV_BUILD + '\n' +
-      'Room      ' + (ROOM || '(not set — this TV shows both rooms)') + '\n' +
-      'Videos    ' + buttons.length + ' in the list\n\n' +
-      'HOW FAST THIS TV PULLS VIDEO\n' + speedLine + '\n\n' +
-      verdict + '\n\n' +
-      'RECENT LESSONS, TIME TO FIRST PICTURE\n' + describeStarts() + '\n\n' +
-      'Press any key to close.';
+  const render = (speedLine, verdict) => {
+    speedLineText = speedLine; speedVerdictText = verdict; renderSpeedPanel();
+  };
 
   render('  measuring…', '');
   if (!first) { render('  no video available to test with', ''); return; }
@@ -2504,6 +3284,11 @@ const THEMES = [
   { id: 'sunshine',     name: 'Sunshine'     },
   { id: 'bubblegum',    name: 'Bubblegum'    },
   { id: 'jungle',       name: 'Jungle'       },
+  { id: 'cosmos',       name: 'Cosmos'       },   // planets, a rocket, stars
+  { id: 'campfire',     name: 'Campfire'     },   // flames, marshmallows, sparks
+  { id: 'snowday',      name: 'Snow Day'     },   // snowflakes and mittens
+  { id: 'lemonade',     name: 'Lemonade'     },   // citrus slices and mint
+  { id: 'chalkboard',   name: 'Chalkboard'   },   // white chalk doodles on green
   { id: 'highcontrast', name: 'Big & Bold'   },
 ];
 
@@ -2538,9 +3323,92 @@ function showThemeToast(name){
   themeToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 1800);
 }
 
-function cycleTheme(){
-  const i = THEMES.findIndex(t => t.id === currentThemeId());
-  applyTheme(THEMES[(i + 1 + THEMES.length) % THEMES.length].id, true);
+/* ==================== THE THEME PICKER ====================
+   This replaced a cycle-through-them-one-at-a-time gesture, which asked
+   whoever was choosing to hold fifteen looks in their head and press LEFT
+   until the right one came round again. A picker shows them all at once.
+
+   Each card carries `data-theme` itself, and every theme is defined as a
+   plain attribute selector rather than one pinned to the page root — so a
+   card genuinely paints itself in the theme it is offering, patterns and all.
+   Nothing here draws a picture OF a theme; each swatch IS one.
+
+   Moving the cursor also applies that theme to the page behind the cards, so
+   it can be judged at full size. Leaving without choosing puts back whatever
+   was there before.
+   ========================================================= */
+const themePickerEl = document.getElementById('themePicker');
+const tpGrid = document.getElementById('tpGrid');
+let tpOpen = false;
+let tpIndex = 0;
+let tpThemeBefore = null;
+
+function tpColumns(){
+  // Enough columns that every theme is on screen at once without the cards
+  // getting too small to read from the back of a classroom.
+  const w = window.innerWidth || 1280;
+  return w >= 1600 ? 5 : w >= 1100 ? 4 : w >= 760 ? 3 : 2;
+}
+
+function openThemePicker(){
+  if (tpOpen) return;
+  tpOpen = true;
+  tpThemeBefore = currentThemeId();
+  tpIndex = Math.max(0, THEMES.findIndex(t => t.id === tpThemeBefore));
+
+  tpGrid.style.setProperty('--tp-cols', tpColumns());
+  tpGrid.innerHTML = '';
+  THEMES.forEach((theme, i) => {
+    const card = document.createElement('div');
+    card.className = 'tp-card';
+    card.setAttribute('data-theme', theme.id);   // this is what makes it a real swatch
+    card.innerHTML =
+      (theme.id === tpThemeBefore ? '<span class="tp-current">Now</span>' : '') +
+      '<span class="tp-name">' + escapeHtml(theme.name) + '</span>' +
+      '<span class="tp-tiles">' +
+        '<span class="tp-tile lead"></span><span class="tp-tile"></span>' +
+        '<span class="tp-tile"></span><span class="tp-tile"></span>' +
+      '</span>';
+    card.addEventListener('click', () => { tpIndex = i; tpApplyFocus(); confirmThemeChoice(); });
+    tpGrid.appendChild(card);
+  });
+
+  themePickerEl.hidden = false;
+  tpApplyFocus();
+}
+
+function tpApplyFocus(){
+  const cards = tpGrid.querySelectorAll('.tp-card');
+  cards.forEach((c, i) => c.classList.toggle('focused', i === tpIndex));
+  const el = cards[tpIndex];
+  if (el) el.scrollIntoView({ block: 'nearest' });
+  // Preview at full size, without saving it — leaving puts the old one back.
+  const theme = THEMES[tpIndex];
+  if (theme) document.documentElement.setAttribute('data-theme', theme.id);
+}
+
+function tpMove(dx, dy){
+  const cols = tpColumns();
+  let i = tpIndex;
+  if (dx) i += dx;
+  if (dy) i += dy * cols;
+  if (i < 0 || i >= THEMES.length) return;   // stop at the edges rather than wrapping
+  tpIndex = i;
+  tpApplyFocus();
+}
+
+function confirmThemeChoice(){
+  const theme = THEMES[tpIndex] || THEMES[0];
+  closeThemePicker(true);
+  applyTheme(theme.id, true);
+}
+
+function closeThemePicker(keep){
+  if (!tpOpen) return;
+  tpOpen = false;
+  themePickerEl.hidden = true;
+  if (!keep && tpThemeBefore) document.documentElement.setAttribute('data-theme', tpThemeBefore);
+  tpThemeBefore = null;
 }
 
 applyTheme(currentThemeId(), false); // restore this TV's saved look immediately
@@ -2598,16 +3466,39 @@ document.addEventListener('keydown', (e) => {
   // own back key is code 4; some TV browsers send Escape or a named GoBack.
   const isBackKey = ['Escape','Backspace','GoBack','BrowserBack'].includes(e.key) || e.keyCode === 4;
 
+  // The picker owns the remote entirely while it is open — it sits over the
+  // screensaver, so without this the arrow keys would also be driving the
+  // screensaver's own gestures underneath it.
+  if (tpOpen) {
+    e.preventDefault();
+    if (isBackKey) { closeThemePicker(false); return; }
+    if (e.key === 'ArrowLeft')  { tpMove(-1, 0); return; }
+    if (e.key === 'ArrowRight') { tpMove(1, 0);  return; }
+    if (e.key === 'ArrowUp')    { tpMove(0, -1); return; }
+    if (e.key === 'ArrowDown')  { tpMove(0, 1);  return; }
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { confirmThemeChoice(); return; }
+    return;   // anything else does nothing rather than falling through
+  }
+
   if (currentView === 'screensaver') {
     if (isBackKey) return; // Back at the screensaver does nothing — already home
     // LEFT is reserved here as the hidden theme switch: two presses within a
     // second and a half cycle the colour scheme. A single LEFT does nothing,
     // which is why it can't be stumbled into — every OTHER key still wakes
     // the menu exactly as before.
-    if (document.getElementById('speedPanel')) { closeSpeedPanel(); e.preventDefault(); return; }
+    if (document.getElementById('speedPanel')) {
+      e.preventDefault();
+      // OK starts the whole-library check; every other key closes the screen.
+      if ((e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') && !fileCheckRunning) {
+        checkEveryFile();
+        return;
+      }
+      closeSpeedPanel();
+      return;
+    }
     if (e.key === 'ArrowLeft') {
       const now = Date.now();
-      if (now - lastLeftPressAt < THEME_GESTURE_MS) { cycleTheme(); lastLeftPressAt = 0; }
+      if (now - lastLeftPressAt < THEME_GESTURE_MS) { openThemePicker(); lastLeftPressAt = 0; }
       else { lastLeftPressAt = now; }
       e.preventDefault();
       return;
@@ -2629,6 +3520,13 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (currentView === 'player') {
+    // AN ERROR SCREEN MUST NEVER BE A TRAP. The player's back arrow is hidden
+    // by request, and Android TV swallows the remote's own Back key before
+    // any web page can see it — so on a failure screen there was nothing at
+    // all a teacher could press, and the room sat looking at it until the
+    // 45-minute idle timer. Any key now takes them back to the list.
+    const errPanel = document.getElementById('playerError');
+    if (errPanel && errPanel.hidden === false) { e.preventDefault(); goBackOneLevel(); return; }
     showPlayerChrome(); // any remote press brings the controls back for a few seconds
     const vid = document.getElementById('playerVideo');
     // Left/right nudge through the video — handy for replaying a line of a
@@ -2684,6 +3582,12 @@ menuCloseBtn.addEventListener('click', handleMenuBack);
 playerBackBtn.addEventListener('click', showMenu);
 
 /* ---------------------- Idle auto-return ---------------------- */
+function startMenuIdleTimer(){
+  clearIdleTimer();
+  const mins = Number(CONFIG.MENU_IDLE_MINUTES) || 0;
+  if (mins > 0) idleTimer = setTimeout(showScreensaver, mins * 60 * 1000);
+}
+
 function startIdleTimer(){
   clearIdleTimer();
   if (CONFIG.IDLE_RETURN_MINUTES > 0) {
@@ -2704,7 +3608,7 @@ function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
   try {
     const cached = JSON.parse(localStorage.getItem('ktv_last_good_config') || 'null');
     if (cached && cached.length) {
-      buttons = cached;
+      applyRows(cached);
       loadThumbnailsUpFront(buttons);
       renderButtons();
       updateMenuTitle();
