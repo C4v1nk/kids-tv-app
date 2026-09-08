@@ -18,7 +18,7 @@
 <!-- The build, where it can be read from OUTSIDE the page. KTV_BUILD below
      lives inside a script, so anyone checking which version a TV is actually
      serving had to run the page to find out. This makes it a plain fetch. -->
-<meta name="ktv-build" content="2026-09-07d">
+<meta name="ktv-build" content="2026-09-08d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Opening a connection to Google costs about a third of a second on a cheap
@@ -1068,12 +1068,23 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-07d";
+const KTV_BUILD = "2026-09-08d";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
   // See the setup guide for exactly how to get this.
-  SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJ6toT0PQzJDJKOStGySWb51A3-No6YYsAsqMECnACmxkQRH5yaD-Ak28PqF7Nrhdrm-SnlanGliWT/pub?output=csv",
+  // WHY THIS IS NOT THE "PUBLISH TO WEB" ADDRESS ANY MORE.
+  // The /pub?output=csv address serves a published COPY of the sheet, which
+  // Google refreshes on its own schedule — its own wording is "might take a
+  // few minutes", and it will not say more than that. So an upload could sit
+  // invisible on every TV for minutes after the sheet already showed it.
+  // The address below reads the LIVE sheet instead. It needs no publishing at
+  // all, only that the sheet stays shared as "Anyone with the link". Measured
+  // against this exact sheet from a browser: same 54 rows, same 10 columns,
+  // parsed identically, and it answered in 176ms against 1,484ms.
+  // If it ever stops working, the old published address still exists and can
+  // be pasted straight back in place of this one.
+  SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/1xz1yvR3b1jTrRG9U_gIHkQX6KD_wnuH-aqVlfwvj268/gviz/tq?tqx=out:csv&gid=0",
 
   // Text shown at the top of the button screen and on the fallback screensaver.
   MENU_TITLE: "Welcome to First Kids!",
@@ -1091,7 +1102,12 @@ const CONFIG = {
 
   // How often (in minutes) the TV checks the Google Sheet for changes.
   // 5 is a good default — Mom's edits show up within 5 minutes on every TV.
-  REFRESH_MINUTES: 5,
+  // Two rather than five, now that the Sheet is read live. Five was chosen
+  // when the TV was reading a published copy that Google only refreshed
+  // every few minutes anyway — checking more often could not have helped.
+  // A live read answers in about a fifth of a second and costs nothing, so
+  // the wait for an upload to appear is now this number and nothing else.
+  REFRESH_MINUTES: 2,
 
   // If a teacher opens a video and walks away, automatically return to the
   // screensaver after this many minutes of no interaction. Set to 0 to disable.
@@ -4015,6 +4031,40 @@ function startIdleTimer(){
 }
 function clearIdleTimer(){ if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; } }
 function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
+
+/* =====================================================================
+   KEEPING THE PANEL AWAKE
+   ---------------------------------------------------------------------
+   Fully Kiosk has a free "Keep Screen On" setting and it should be on, but
+   it is one checkbox on ten devices that a factory reset or a reinstall
+   quietly undoes, and nobody finds out until a screen goes black in the
+   middle of a Bible story. This is the same lock asked for by the page
+   itself, so it travels with the app and cannot be un-ticked.
+
+   The browser drops the lock whenever the page is hidden, which is correct
+   and expected, so it is re-taken on the way back. Everything is wrapped:
+   on a browser without it, or one that refuses on low battery, this does
+   nothing at all and nothing else notices.
+   ===================================================================== */
+let screenWakeLock = null;
+
+async function holdScreenAwake(){
+  try {
+    if (!('wakeLock' in navigator) || !navigator.wakeLock) return;
+    if (screenWakeLock && !screenWakeLock.released) return;
+    if (document.hidden) return;                  // the browser would refuse anyway
+    screenWakeLock = await navigator.wakeLock.request('screen');
+    screenWakeLock.addEventListener('release', () => { screenWakeLock = null; });
+  } catch (e) {
+    screenWakeLock = null;   // not supported, or refused. The kiosk setting still covers it.
+  }
+}
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden) holdScreenAwake(); });
+// A TV runs from 8am to noon without a reload. If the lock is ever dropped
+// for a reason there is no event for, this quietly takes it back.
+setInterval(holdScreenAwake, 60000);
+holdScreenAwake();
 
 /* ---------------------- Boot ----------------------
    Draw the list from the copy saved on this TV first, then refresh from the
