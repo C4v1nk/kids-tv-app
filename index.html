@@ -18,7 +18,7 @@
 <!-- The build, where it can be read from OUTSIDE the page. KTV_BUILD below
      lives inside a script, so anyone checking which version a TV is actually
      serving had to run the page to find out. This makes it a plain fetch. -->
-<meta name="ktv-build" content="2026-09-08d">
+<meta name="ktv-build" content="2026-09-08e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Opening a connection to Google costs about a third of a second on a cheap
@@ -1068,7 +1068,7 @@
 // Bump this whenever the file changes. It is the ONLY thing the update check
 // below compares, so it must be different from the version currently on the
 // TVs for them to notice a new release.
-const KTV_BUILD = "2026-09-08d";
+const KTV_BUILD = "2026-09-08e";
 
 const CONFIG = {
   // The published CSV link from your Google Sheet (File > Share > Publish to web).
@@ -1468,11 +1468,31 @@ function extractDriveId(raw){
   return null;
 }
 
+// Two refreshes must never be in flight at once, and neither may hang for
+// ever. Both were possible: the two-minute timer fired regardless of whether
+// the last one had finished, fetch has no timeout of its own, and whichever
+// response came back LAST won — including writing itself to the offline
+// cache. So a request stalled on a wedged access point could return minutes
+// later with a pre-upload copy of the sheet, wipe the video Mum had just
+// added back off the grid, and save that stale list as "last known good".
+let sheetLoadInFlight = false;
+let sheetLoadSerial = 0;
+const SHEET_TIMEOUT_MS = 15000;
+
 async function loadConfigFromSheet(){
+  if (sheetLoadInFlight) return;      // one at a time, always
+  sheetLoadInFlight = true;
+  const mySerial = ++sheetLoadSerial;
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const bail = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, SHEET_TIMEOUT_MS) : null;
   try {
-    const res = await fetch(CONFIG.SHEET_CSV_URL, { cache: 'no-store' });
+    const res = await fetch(CONFIG.SHEET_CSV_URL,
+      ctrl ? { cache: 'no-store', signal: ctrl.signal } : { cache: 'no-store' });
+    if (bail) clearTimeout(bail);
+    if (mySerial !== sheetLoadSerial) return;   // something newer already won
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
+    if (mySerial !== sheetLoadSerial) return;
     const rows = parseCSV(text);
     if (!rows.length) throw new Error('Sheet came back empty');
 
@@ -1566,6 +1586,10 @@ async function loadConfigFromSheet(){
     }
     if (!buttons.length) renderEmptyState(err.message);
   }
+  finally {
+    if (bail) clearTimeout(bail);
+    sheetLoadInFlight = false;
+  }
 }
 
 function setStatus(isLive){
@@ -1605,9 +1629,14 @@ function quickLinkTarget(){
   const want = String(CONFIG.QUICK_LINK_FOLDER || '').trim().toLowerCase();
   if (!want) return null;
   const room = activeGroupRoom || '';
+  // Match rooms the same way the rest of the app does. Everywhere else a
+  // blank room, or "both", means "all rooms" — but this asked for an exact
+  // string match, so the day anyone puts the Worship songs in a shared folder
+  // instead of one per room, the shortcut silently stops appearing inside the
+  // week folders, which is the only place it exists for.
   const hit = buttons.find(b => b.group &&
                                 b.group.trim().toLowerCase() === want &&
-                                (b.room || '') === room);
+                                (!b.room || b.room === 'both' || (b.room || '') === room));
   return hit ? { name: hit.group, room: hit.room || '' } : null;
 }
 
@@ -1745,6 +1774,7 @@ let keepFocusLabel = null;
 function renderButtons(){
   // Remember what the cursor was on before the grid is thrown away.
   keepFocusLabel = tileKey(visibleItems[focusedIndex]);
+  const keepFocusIndex = focusedIndex;
   const items = computeVisibleItems();
   visibleItems = items;
 
@@ -1798,9 +1828,17 @@ function renderButtons(){
   requestAnimationFrame(fitGrid);                    // and again once layout has settled
   // Keep the cursor where it was if that tile still exists — a redraw should
   // never move a teacher's selection out from under them.
-  focusedIndex = (keepFocusLabel && items.findIndex(it => tileKey(it) === keepFocusLabel) >= 0)
-    ? items.findIndex(it => tileKey(it) === keepFocusLabel)
-    : 0;
+  const sameTile = keepFocusLabel ? items.findIndex(it => tileKey(it) === keepFocusLabel) : -1;
+  if (sameTile >= 0) {
+    focusedIndex = sameTile;
+  } else {
+    // The tile the cursor was on has gone — Mum renamed or moved something
+    // mid-service. Falling back to nought looks harmless but is not: inside a
+    // week folder, tile nought is "Back to Screensaver". A teacher who
+    // pressed OK a moment after that redraw would drop the whole room to the
+    // logo in the middle of a lesson. Stay where the hand already is instead.
+    focusedIndex = Math.max(0, Math.min(keepFocusIndex, items.length - 1));
+  }
   keepFocusLabel = null;
   applyFocusVisual();
   resumeWarming();          // start fetching indexes for what is now on screen
@@ -1918,12 +1956,22 @@ function preloadThumbnail(fileId){
     thumbWaiters.delete(fileId);
     waiters.forEach(cb => cb(state));
   };
+  // A request that opens and then goes quiet fires neither onload nor
+  // onerror — it simply never answers. Without a clock this file stayed
+  // 'loading' for the rest of the morning, and because every redraw of the
+  // grid queues another waiter against it, the list of callbacks grew on
+  // every folder change and every video end, each one holding a dead button
+  // in memory. A TV runs from eight until noon without a reload; that adds up.
+  const THUMB_TIMEOUT_MS = 6000;
   const attempt = (i) => {
     if (i >= urls.length) { settle('failed'); return; }
     const img = new Image();
     img.decoding = 'async';
-    img.onload = () => { thumbChosen.set(fileId, urls[i]); settle('loaded'); };
-    img.onerror = () => attempt(i + 1);   // that address didn't work — try the other
+    let moved = false;
+    const nudge = (fn) => { if (moved) return; moved = true; clearTimeout(clock); fn(); };
+    const clock = setTimeout(() => nudge(() => attempt(i + 1)), THUMB_TIMEOUT_MS);
+    img.onload  = () => nudge(() => { thumbChosen.set(fileId, urls[i]); settle('loaded'); });
+    img.onerror = () => nudge(() => attempt(i + 1));   // that address didn't work — try the other
     img.src = urls[i];
   };
   attempt(0);
@@ -2044,6 +2092,14 @@ function setMusicTracks(rows){
   // the room was cut off mid-verse and restarted from a random track, twelve
   // times an hour, on all ten TVs — almost no song ever reached its own end.
   // Only rebuild when the songs have actually changed.
+  // Clear the failure count FIRST, before the "nothing changed" exit below.
+  // The counter is what stops the music retrying for ever, and the comment on
+  // it promised that a sheet refresh would clear it — but the refresh returns
+  // here whenever the song list is unchanged, which is almost always. So one
+  // bad minute of Wi-Fi (ten TVs hitting Google at once is enough) burned
+  // through every allowed retry in about two seconds and the logo screen was
+  // silent for the rest of the morning, with nothing on screen to say why.
+  musicFailures = 0;
   if (signature === musicSignature && musicTracks.length) return;
 
   musicSignature = signature;
@@ -2196,6 +2252,26 @@ function unduckScreensaver(){
 }
 
 /* ---------------------- View transitions ---------------------- */
+// Detaching a <video> pauses it. It does NOT cancel the download that is
+// already in flight, and it does not free the media player the stick has
+// allocated for it — both hang around until the browser gets round to it.
+// This was already known and already fixed on the ERROR path (measured there:
+// 80MB still arriving 70 seconds after the video had visibly given up), but
+// the ordinary way out — a teacher going back to the menu, or a lesson
+// ending — never got the same treatment. Over a morning of forty lesson
+// starts on a stick with no memory to spare, that is the difference between
+// a TV that still works at noon and one that has quietly stopped loading
+// video. Every exit now goes through here.
+function stopPlayerMedia(){
+  const vid = document.getElementById('playerVideo');
+  if (vid) {
+    try { vid.pause(); } catch (e) {}
+    try { vid.removeAttribute('src'); vid.load(); } catch (e) {}
+  }
+  const img = document.getElementById('playerImage');
+  if (img) { try { img.removeAttribute('src'); } catch (e) {} }
+}
+
 function showScreensaver(){
   // The idle timer can fire while someone is still choosing a look. Put back
   // whatever was there rather than leaving a half-made choice on the wall.
@@ -2207,7 +2283,8 @@ function showScreensaver(){
   activeGroup = null; activeGroupRoom = null; // always wake up back at the main menu, not wherever a teacher left off
   menuEl.classList.remove('open');
   playerEl.classList.remove('open');
-  playerFrameWrap.innerHTML = ''; // stop any playing video
+  stopPlayerMedia();               // cancel the download, free the media player
+  playerFrameWrap.innerHTML = '';
   clearTimeout(playerLoadTimeout);
   clearPlayerTickers();
   playAttemptToken++; // invalidate any in-flight video-load attempt we're leaving behind
@@ -2222,6 +2299,7 @@ function showMenu(){
   currentView = 'menu';
   playerEl.classList.remove('is-paused');
   playerEl.classList.remove('open');
+  stopPlayerMedia();               // cancel the download, free the media player
   playerFrameWrap.innerHTML = '';
   clearTimeout(playerLoadTimeout);
   clearPlayerTickers();
@@ -3230,7 +3308,13 @@ function pauseWarming(){
     // later and act on a world that has moved on.
     const inflight = warmInFlight;
     warmInFlight = null;
-    if (inflight.settle) inflight.settle(false);
+    // CANCELLED is not FAILED. This used to call settle(false), which runs
+    // the same path a genuine load error takes and adds the file to
+    // `warmFailed` — so the moment a teacher pressed any tile, whichever
+    // video happened to be pre-loading at that instant was blacklisted, and
+    // the next time they came back to the menu that one tile was deliberately
+    // left cold. It was, reliably, the tile they were about to press.
+    if (inflight.settle) inflight.settle(false, true, true);
     else discardWarm(inflight.fileId, inflight.el);
   }
   warmBusy = false;
@@ -3308,13 +3392,18 @@ function warmNext(){
   // `quiet` means "close this attempt but do not start another" — used when
   // the player is taking this element, because a lesson is about to start and
   // the very next thing that happens is warming being paused anyway.
-  const done = (keep, quiet) => {
+  const done = (keep, quiet, cancelled) => {
     if (settled) return;
     settled = true;
     clearTimeout(timer);
     if (warmInFlight && warmInFlight.fileId === fileId) warmInFlight = null;
     warmBusy = false;
-    if (!keep) { discardWarm(fileId, el); warmFailed.add(fileId); }
+    if (!keep) {
+      discardWarm(fileId, el);
+      // Only remember a file as bad if it actually behaved badly. A warm-up
+      // we walked away from proves nothing about the file.
+      if (!cancelled) warmFailed.add(fileId);
+    }
     // One at a time, always: two background downloads would halve the speed
     // of the one the teacher is most likely to want.
     if (!quiet && !warmPaused) warmNext();
@@ -3976,7 +4065,18 @@ document.addEventListener('keydown', (e) => {
     // guarantees will reach the page (BACK is filtered out by the browser
     // itself before web content ever sees it), so it carries the action a
     // teacher needs most while a video is on the wall.
-    if (['Enter',' '].includes(e.key)) { togglePlayPause(); e.preventDefault(); return; }
+    if (['Enter',' '].includes(e.key)) {
+      e.preventDefault();
+      // On a video OK pauses. On a PICTURE there is nothing to pause, and
+      // there was nothing else to press either: the on-screen back arrow is
+      // hidden, arrows and the media keys are all gated on there being a
+      // video, and a picture never ends by itself. A memory-verse image could
+      // therefore sit on the wall until the forty-five-minute clock ran out —
+      // and because every press restarted that clock, a teacher trying keys
+      // to escape pushed the escape further away with each one. OK now leaves.
+      if (!togglePlayPause()) showMenu();
+      return;
+    }
     // Back-style keys leave the video. On a TV remote this only arrives if
     // the kiosk app forwards it (see the popstate handler below) — the
     // on-screen arrow is the guaranteed path.
@@ -4017,20 +4117,34 @@ menuCloseBtn.addEventListener('click', handleMenuBack);
 playerBackBtn.addEventListener('click', showMenu);
 
 /* ---------------------- Idle auto-return ---------------------- */
+// WHICH clock is running matters, and for a long time it did not know.
+// There are two: three minutes on the button menu, forty-five while a video
+// is up. Every remote press restarts the running one — but the restart always
+// used the forty-five-minute number, whichever clock it was actually
+// restarting. So the moment a teacher pressed a single arrow key on the menu,
+// the three-minute clock quietly became a forty-five-minute one, and the
+// static grid sat burning into the panel for three quarters of an hour. That
+// is the exact fault MENU_IDLE_MINUTES was added to fix, undone by one line.
+let idleMode = 'player';   // 'menu' | 'player' — which clock is on the wall
+
 function startMenuIdleTimer(){
   clearIdleTimer();
+  idleMode = 'menu';
   const mins = Number(CONFIG.MENU_IDLE_MINUTES) || 0;
   if (mins > 0) idleTimer = setTimeout(showScreensaver, mins * 60 * 1000);
 }
-
 function startIdleTimer(){
   clearIdleTimer();
+  idleMode = 'player';
   if (CONFIG.IDLE_RETURN_MINUTES > 0) {
     idleTimer = setTimeout(showScreensaver, CONFIG.IDLE_RETURN_MINUTES * 60 * 1000);
   }
 }
 function clearIdleTimer(){ if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; } }
-function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
+function restartIdleTimerIfActive(){
+  if (!idleTimer) return;
+  if (idleMode === 'menu') startMenuIdleTimer(); else startIdleTimer();
+}
 
 /* =====================================================================
    KEEPING THE PANEL AWAKE
@@ -4047,16 +4161,32 @@ function restartIdleTimerIfActive(){ if (idleTimer) startIdleTimer(); }
    nothing at all and nothing else notices.
    ===================================================================== */
 let screenWakeLock = null;
+let wakeLockPending = false;   // a request is already on its way
 
 async function holdScreenAwake(){
+  // The guard has to cover the AWAIT, not just the line before it. Without
+  // `wakeLockPending`, the visibility handler and the one-minute timer can
+  // both pass the check in the same tick, both ask, and the first lock is
+  // then orphaned — held for ever, unreleasable, and its release handler
+  // later clears the variable while a different lock is still live, which
+  // starts the whole thing again. Four hours of that adds up.
+  if (wakeLockPending) return;
   try {
     if (!('wakeLock' in navigator) || !navigator.wakeLock) return;
     if (screenWakeLock && !screenWakeLock.released) return;
     if (document.hidden) return;                  // the browser would refuse anyway
-    screenWakeLock = await navigator.wakeLock.request('screen');
-    screenWakeLock.addEventListener('release', () => { screenWakeLock = null; });
+    wakeLockPending = true;
+    const sentinel = await navigator.wakeLock.request('screen');
+    screenWakeLock = sentinel;
+    // Only clear the variable if the lock that just ended is still the one
+    // we are holding — otherwise a stale release wipes a live lock.
+    sentinel.addEventListener('release', () => {
+      if (screenWakeLock === sentinel) screenWakeLock = null;
+    });
   } catch (e) {
     screenWakeLock = null;   // not supported, or refused. The kiosk setting still covers it.
+  } finally {
+    wakeLockPending = false;
   }
 }
 
